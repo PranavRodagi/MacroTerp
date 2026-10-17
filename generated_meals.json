@@ -1,0 +1,299 @@
+{
+  "source_menu_date": "2026-10-17",
+  "meals": [
+    {
+      "dining_hall": "251 North",
+      "meal_name": "Plant-Based Chicken & Tofu & Chickpeas",
+      "items": [
+        {
+          "name": "Vegan Breaded Buffalo Chicken Strips",
+          "generic_name": "plant-based chicken",
+          "serving_g": 113,
+          "macros": {
+            "calories": 167.0,
+            "protein_g": 17.8,
+            "carbs_g": 21.1,
+            "fat_g": 3.4,
+            "sat_fat_g": 0.9,
+            "fiber_g": 1.1,
+            "sugar_g": 1.4,
+            "sodium_mg": 500.0,
+            "cholesterol_mg": 0.0
+          }
+        },
+        {
+          "name": "Roasted Garlic Chili Tofu",
+          "generic_name": "tofu",
+          "serving_g": 85,
+          "macros": {
+            "calories": 137.0,
+            "protein_g": 13.6,
+            "carbs_g": 2.7,
+            "fat_g": 9.2,
+            "sat_fat_g": 1.1,
+            "fiber_g": 0.9,
+            "sugar_g": 0.0,
+            "sodium_mg": 99.4,
+            "cholesterol_mg": 0.0
+          }
+        },
+        {
+          "name": "Ranch Chickpea",
+          "generic_name": "chickpeas",
+          "serving_g": 57,
+          "macros": {
+            "calories": 211.0,
+            "protein_g": 11.0,
+            "carbs_g": 35.4,
+            "fat_g": 3.5,
+            "sat_fat_g": 0.1,
+            "fiber_g": 9.9,
+            "sugar_g": 6.4,
+            "sodium_mg": 25.4,
+            "cholesterol_mg": 0.0
+          }
+        },
+        {
+          "name": "Salt and Pepper Tofu",
+          "generic_name": "tofu",
+          "serving_g": 113,
+          "macros": {
+            "calories": 301.0,
+            "protein_g": 14.8,
+            "carbs_g": 13.9,
+            "fat_g": 22.4,
+            "sat_fat_g": 2.1,
+            "fiber_g": 1.3,
+            "sugar_g": 1.6,
+            "sodium_mg": 307.6,
+            "cholesterol_mg": 0.0
+          }
+        },
+        {
+          "name": "Flax Seeds",
+          "generic_name": "seeds",
+          "serving_g": 28,
+          "macros": {
+            "calories": 156.0,
+            "protein_g": 5.4,
+            "carbs_g": 8.5,
+            "fat_g": 12.2,
+            "sat_fat_g": 1.1,
+            "fiber_g": 7.9,
+            "sugar_g": 0.6,
+            "sodium_mg": 8.5,
+            "cholesterol_mg": 0.0
+          }
+        }
+      ],
+      "total_serving_g": 396.0,
+      "meal_macros_total": {
+        "calories": 972.0,
+        "protein_g": 62.6,
+        "carbs_g": 81.6,
+        "fat_g": 50.7,
+        "sat_fat_g": 5.3,
+        "fiber_g": 21.1,
+        "sugar_g": 10.0,
+        "sodium_mg": 940.9,
+        "cholesterol_mg": 0.0
+      }
+    },
+    {
+      "dining_hall": "South Campus",
+      "meal_name": "Eggs & Plant-Based Chicken & Lentils",
+      "items": [
+        {
+          "name": "Scrambled Eggs",
+          "generic_name": "eggs",
+          "serving_g": 113,
+          "macros": {
+            "calories": 192.0,
+            "protein_g": 15.0,
+            "carbs_g": 1.2,
+            "fat_g": 13.7,
+            "sat_fat_g": 3.6,
+            "fiber_g": 0.0,
+            "sugar_g": 1.2,
+            "sodium_mg": 161.3,
+            "cholesterol_mg": 483.8
+          }
+        },
+        {
+          "name": "Breaded Chicken Cutlet",
+          "generic_name": "plant-based chicken",
+          "serving_g": 96,
+          "macros": {
+            "calories": 259.0,
+            "protein_g": 19.8,
+            "carbs_g": 21.4,
+            "fat_g": 12.2,
+            "sat_fat_g": 0.0,
+            "fiber_g": 3.1,
+            "sugar_g": 0.0,
+            "sodium_mg": 473.1,
+            "cholesterol_mg": 0.0
+          }
+        },
+        {
+          "name": "Scrambled Cheesy Cheddar Egg",
+          "generic_name": "eggs",
+          "serving_g": 113,
+          "macros": {
+            "calories": 215.0,
+            "protein_g": 16.4,
+            "carbs_g": 1.2,
+            "fat_g": 15.5,
+            "sat_fat_g": 4.7,
+            "fiber_g": 0.0,
+            "sugar_g": 1.2,
+            "sodium_mg": 198.3,
+            "cholesterol_mg": 490.0
+          }
+        },
+        {
+          "name": "Roasted Red Pepper Tarragon Lentils",
+          "generic_name": "lentils",
+          "serving_g": 85,
+          "macros": {
+            "calories": 127.0,
+            "protein_g": 9.3,
+            "carbs_g": 23.3,
+            "fat_g": 0.0,
+            "sat_fat_g": 0.0,
+            "fiber_g": 4.2,
+            "sugar_g": 0.5,
+            "sodium_mg": 80.6,
+            "cholesterol_mg": 0.0
+          }
+        },
+        {
+          "name": "Cereal Granola",
+          "generic_name": "cereal",
+          "serving_g": 113,
+          "macros": {
+            "calories": 155.0,
+            "protein_g": 3.1,
+            "carbs_g": 33.3,
+            "fat_g": 1.9,
+            "sat_fat_g": 0.0,
+            "fiber_g": 3.1,
+            "sugar_g": 10.9,
+            "sodium_mg": 65.9,
+            "cholesterol_mg": 0.0
+          }
+        }
+      ],
+      "total_serving_g": 520.0,
+      "meal_macros_total": {
+        "calories": 948.0,
+        "protein_g": 63.6,
+        "carbs_g": 80.4,
+        "fat_g": 43.3,
+        "sat_fat_g": 8.3,
+        "fiber_g": 10.4,
+        "sugar_g": 13.8,
+        "sodium_mg": 979.2,
+        "cholesterol_mg": 973.8
+      }
+    },
+    {
+      "dining_hall": "Yahentamitsi Dining Hall",
+      "meal_name": "Tofu & Mac And Cheese & Soup",
+      "items": [
+        {
+          "name": "Tofu",
+          "generic_name": "tofu",
+          "serving_g": 57,
+          "macros": {
+            "calories": 81.0,
+            "protein_g": 9.3,
+            "carbs_g": 1.9,
+            "fat_g": 4.9,
+            "sat_fat_g": 0.6,
+            "fiber_g": 0.6,
+            "sugar_g": 0.0,
+            "sodium_mg": 3.1,
+            "cholesterol_mg": 0.0
+          }
+        },
+        {
+          "name": "Five Cheese Macaroni Bake",
+          "generic_name": "mac and cheese",
+          "serving_g": 113,
+          "macros": {
+            "calories": 394.0,
+            "protein_g": 17.3,
+            "carbs_g": 46.3,
+            "fat_g": 16.3,
+            "sat_fat_g": 8.7,
+            "fiber_g": 2.3,
+            "sugar_g": 3.8,
+            "sodium_mg": 465.5,
+            "cholesterol_mg": 72.1
+          }
+        },
+        {
+          "name": "Tomato Basil Soup",
+          "generic_name": "soup",
+          "serving_g": 170,
+          "macros": {
+            "calories": 235.0,
+            "protein_g": 7.6,
+            "carbs_g": 32.1,
+            "fat_g": 9.2,
+            "sat_fat_g": 0.0,
+            "fiber_g": 7.6,
+            "sugar_g": 21.4,
+            "sodium_mg": 367.0,
+            "cholesterol_mg": 0.0
+          }
+        },
+        {
+          "name": "Semolina Pasta Cooked",
+          "generic_name": "pasta",
+          "serving_g": 113,
+          "macros": {
+            "calories": 142.0,
+            "protein_g": 4.5,
+            "carbs_g": 26.9,
+            "fat_g": 2.1,
+            "sat_fat_g": 0.1,
+            "fiber_g": 1.3,
+            "sugar_g": 1.4,
+            "sodium_mg": 1.5,
+            "cholesterol_mg": 0.0
+          }
+        },
+        {
+          "name": "Fried Rice",
+          "generic_name": "fried rice",
+          "serving_g": 85,
+          "macros": {
+            "calories": 95.0,
+            "protein_g": 2.5,
+            "carbs_g": 20.2,
+            "fat_g": 0.1,
+            "sat_fat_g": 0.0,
+            "fiber_g": 0.3,
+            "sugar_g": 0.2,
+            "sodium_mg": 140.3,
+            "cholesterol_mg": 0.0
+          }
+        }
+      ],
+      "total_serving_g": 538.0,
+      "meal_macros_total": {
+        "calories": 947.0,
+        "protein_g": 41.2,
+        "carbs_g": 127.4,
+        "fat_g": 32.6,
+        "sat_fat_g": 9.4,
+        "fiber_g": 12.1,
+        "sugar_g": 26.8,
+        "sodium_mg": 977.4,
+        "cholesterol_mg": 72.1
+      }
+    }
+  ]
+}

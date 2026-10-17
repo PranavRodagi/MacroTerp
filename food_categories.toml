@@ -1,0 +1,376 @@
+# Generic food categories used by meal_recommender.py.
+#
+# Each [[category]] maps menu items to a broad generic name by matching the
+# item's NAME (never its ingredients). Categories are checked top to bottom and
+# the first match wins, so put specific dishes above the ingredients they
+# contain (e.g. "pizza" above "cheese", "sandwich" above "bread").
+#
+# Fields:
+#   name      Generic name shown in output (required, unique).
+#   keywords  Words or phrases matched as whole words, case-insensitive. An
+#             optional trailing "s"/"es" is allowed, so "pancake" also matches
+#             "pancakes". List irregular plurals explicitly ("cherries").
+#   patterns  Regular expressions for cases keywords can't express. Use
+#             single-quoted strings so backslashes need no escaping.
+#   exclude   Keywords that disqualify this category for an item, letting it
+#             fall through to a later category (e.g. "Pancake Syrup" is not
+#             pancakes).
+#   meat      true for meat/fish categories. Items the dining hall tags vegan
+#             or vegetarian that match one become "plant-based <name>", and
+#             this check runs before normal ordering, so "Vegan Chicken Slider"
+#             is "plant-based chicken" rather than "burger".
+#
+# Each category needs at least one keyword or pattern. Removing a category is
+# safe: its items fall through to the next matching category. Items that match
+# nothing are named "unknown" and are left out of generated meals.
+
+# ---------------------------------------------------------------------------
+# Composite dishes
+# ---------------------------------------------------------------------------
+[[category]]
+name = "pizza"
+keywords = ["pizza"]
+
+[[category]]
+name = "egg roll"
+keywords = ["egg roll"]
+
+[[category]]
+name = "breakfast sandwich"
+keywords = ["breakfast sandwich", "breakfast wrap", "breakfast bagel sandwich"]
+
+[[category]]
+name = "mac and cheese"
+keywords = ["mac and cheese", "mac & cheese", "macaroni and cheese", "macaroni bake"]
+
+[[category]]
+name = "soup"
+keywords = ["soup", "congee", "chowder", "bisque"]
+
+[[category]]
+name = "chili"
+keywords = ["chili with beans", "chili con carne"]
+
+[[category]]
+name = "pot pie"
+keywords = ["pot pie"]
+
+[[category]]
+name = "stir fry"
+keywords = ["stir fry"]
+exclude = ["sauce"]
+
+[[category]]
+name = "smoothie"
+keywords = ["smoothie"]
+
+[[category]]
+name = "pickles"
+keywords = ["pickle", "pickled", "kimchi"]
+
+[[category]]
+name = "pancakes and waffles"
+keywords = ["pancake", "waffle", "french toast"]
+exclude = ["syrup"]
+
+# ---------------------------------------------------------------------------
+# Desserts, baked goods, breakfast, and dairy
+# ---------------------------------------------------------------------------
+[[category]]
+name = "dessert"
+keywords = [
+    "cheesecake", "brownie", "cobbler", "cookie", "ice cream", "soft serve",
+    "sorbet", "pudding", "kheer", "sprinkles", "chocolate chips", "m&m pieces",
+    "oreo pieces", "whipped cream", "hot fudge", "strawberry topping",
+    "apple filling",
+]
+exclude = ["corn pudding"]
+
+[[category]]
+name = "pastry"
+keywords = ["muffin", "donut", "croissant", "biscuit"]
+exclude = ["english muffin"]
+
+[[category]]
+name = "cereal"
+keywords = ["cereal", "granola", "coco puffs", "special k"]
+
+[[category]]
+name = "milk"
+keywords = ["milk", "oatmilk"]
+
+[[category]]
+name = "yogurt"
+keywords = ["yogurt"]
+
+# ---------------------------------------------------------------------------
+# Sandwiches and handhelds
+# ---------------------------------------------------------------------------
+[[category]]
+name = "quesadilla"
+keywords = ["quesadilla"]
+
+[[category]]
+name = "wrap"
+keywords = ["wrap", "lavash", "shawarma flat bread"]
+
+[[category]]
+name = "sandwich"
+keywords = ["sandwich", "panini", "sub", "grilled cheese", "cheese steak", "cheesesteak"]
+
+[[category]]
+name = "burger"
+keywords = ["burger", "hamburger", "cheeseburger", "slider"]
+
+[[category]]
+name = "hot dog"
+keywords = ["hot dog"]
+
+[[category]]
+name = "tortilla"
+keywords = ["tortilla", "tostada"]
+exclude = ["chip", "strips", "soup"]
+
+[[category]]
+name = "chips"
+keywords = ["chip", "tortilla strips", "corntortilla strips", "wonton strips", "cracker"]
+
+# ---------------------------------------------------------------------------
+# Noodles, grains, and starches
+# ---------------------------------------------------------------------------
+[[category]]
+name = "pasta"
+keywords = [
+    "pasta", "spaghetti", "penne", "rotini", "tortellini", "gnocchi",
+    "linguine", "fettuccine", "lasagna",
+]
+
+[[category]]
+name = "noodles"
+keywords = ["noodle", "lo mein", "chow mein", "chow fun"]
+
+[[category]]
+name = "fried rice"
+keywords = ["fried rice"]
+
+[[category]]
+name = "rice"
+keywords = ["rice", "risotto"]
+
+[[category]]
+name = "mashed potatoes"
+keywords = ["mashed potato"]
+
+[[category]]
+name = "fries"
+keywords = ["fries"]
+
+[[category]]
+name = "whole potatoes"
+keywords = ["potato", "potaoes", "hash"]
+
+# ---------------------------------------------------------------------------
+# Sauces, dressings, and condiments
+# ---------------------------------------------------------------------------
+[[category]]
+name = "salad dressing"
+keywords = [
+    "dressing", "vinaigrette", "vinagrette", "ff italian", "italian creamy",
+    "farm house", "thousand island",
+]
+
+[[category]]
+name = "sauce"
+# Sauce words only count when they name the item (at the end, or a leading
+# "Sauce"/"Salsa"), so "Tortellini with Cream Sauce" stays pasta.
+patterns = [
+    '\b(sauce|gravy|aioli|mayonnaise|mustard|salsa|pico de gallo|chutney|tzatziki|queso|syrup|marinara)( (roja|verde|blanco|plum))?$',
+    '^(sauce|salsa)\b',
+]
+exclude = ["in syrup"]
+
+[[category]]
+name = "dip"
+keywords = ["hummus", "guacamole"]
+
+[[category]]
+name = "condiment"
+keywords = ["butter", "margarine", "spread", "olive oil", "vinegar", "cream cheese"]
+exclude = ["butter chicken", "butter sage", "butter glazed", "butter pickles"]
+
+# ---------------------------------------------------------------------------
+# Proteins
+# ---------------------------------------------------------------------------
+[[category]]
+name = "shrimp"
+keywords = ["shrimp"]
+meat = true
+
+[[category]]
+name = "salmon"
+keywords = ["salmon"]
+meat = true
+
+[[category]]
+name = "tuna"
+keywords = ["tuna"]
+meat = true
+
+[[category]]
+name = "fish"
+keywords = ["fish", "catfish", "cod", "tilapia", "pollock"]
+meat = true
+
+[[category]]
+name = "deli meat"
+keywords = ["salami sliced", "pepperoni sliced", "ham sliced", "turkey sliced"]
+meat = true
+
+[[category]]
+name = "sausage"
+keywords = ["sausage"]
+meat = true
+
+[[category]]
+name = "bacon"
+keywords = ["bacon"]
+meat = true
+
+[[category]]
+name = "ham"
+keywords = ["ham"]
+meat = true
+
+[[category]]
+name = "collard greens"
+keywords = ["collard green"]
+
+[[category]]
+name = "chicken"
+keywords = ["chicken"]
+meat = true
+
+[[category]]
+name = "turkey"
+keywords = ["turkey"]
+meat = true
+
+[[category]]
+name = "beef"
+keywords = ["beef", "brisket", "steak"]
+meat = true
+
+[[category]]
+name = "pork"
+keywords = ["pork"]
+meat = true
+
+[[category]]
+name = "tofu"
+keywords = ["tofu"]
+
+[[category]]
+name = "eggs"
+keywords = ["egg", "egg white", "omelet", "omelette"]
+
+[[category]]
+name = "lentils"
+keywords = ["lentil"]
+
+[[category]]
+name = "chickpeas"
+keywords = ["chickpea", "garbanzo", "chana"]
+
+[[category]]
+name = "edamame"
+keywords = ["edamame"]
+
+[[category]]
+name = "green beans"
+keywords = ["green bean"]
+
+# ---------------------------------------------------------------------------
+# Vegetables
+# ---------------------------------------------------------------------------
+[[category]]
+name = "salad"
+keywords = ["salad", "slaw"]
+
+[[category]]
+name = "broccoli"
+keywords = ["broccoli"]
+
+[[category]]
+name = "brussels sprouts"
+keywords = ["brussels sprout", "brussel sprout"]
+
+[[category]]
+name = "cauliflower"
+keywords = ["cauliflower"]
+
+[[category]]
+name = "carrots"
+keywords = ["carrot"]
+
+[[category]]
+name = "corn"
+keywords = ["corn", "hominy"]
+
+[[category]]
+name = "mushrooms"
+keywords = ["mushroom"]
+
+[[category]]
+name = "peas"
+keywords = ["pea"]
+
+[[category]]
+name = "vegetables"
+keywords = [
+    "vegetable", "veggies", "beet", "parsnip", "celery", "artichoke",
+    "bamboo shoot", "water chestnut", "bean sprout", "avocado", "jicama",
+]
+
+[[category]]
+name = "tomatoes"
+keywords = ["tomato"]
+
+[[category]]
+name = "leafy greens"
+keywords = ["lettuce", "romaine", "spring mix", "kale", "arugula", "spinach", "cabbage", "bok choy"]
+
+[[category]]
+name = "cucumbers"
+keywords = ["cucumber"]
+
+[[category]]
+name = "peppers"
+keywords = ["pepper", "jalapeno", "shishito"]
+exclude = ["pepper jack", "lemon pepper"]
+
+[[category]]
+name = "onions"
+keywords = ["onion", "scallion", "shallot"]
+
+[[category]]
+name = "olives"
+keywords = ["olive"]
+
+# ---------------------------------------------------------------------------
+# Toppings, cheese, and fruit
+# ---------------------------------------------------------------------------
+[[category]]
+name = "seeds"
+keywords = ["seed"]
+
+[[category]]
+name = "cheese"
+keywords = ["cheese"]
+
+[[category]]
+name = "fruit"
+keywords = [
+    "fruit", "apple", "banana", "orange", "grapefruit", "berries", "blueberry",
+    "strawberry", "melon", "cantaloupe", "watermelon", "pineapple", "grape",
+    "kiwi", "peach", "pear", "mango", "cherries", "raisin",
+]
