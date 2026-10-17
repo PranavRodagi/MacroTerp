@@ -1,0 +1,9 @@
+# macOS
+.DS_Store
+
+# Python bytecode
+__pycache__/
+*.pyc
+
+# Scraper's local nutrition-label cache (rebuilt on the next run)
+umd_dining.db
