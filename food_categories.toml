@@ -44,23 +44,6 @@ name = "soup"
 keywords = ["soup", "congee", "chowder", "bisque"]
 
 [[category]]
-name = "chili"
-keywords = ["chili with beans", "chili con carne"]
-
-[[category]]
-name = "pot pie"
-keywords = ["pot pie"]
-
-[[category]]
-name = "stir fry"
-keywords = ["stir fry"]
-exclude = ["sauce"]
-
-[[category]]
-name = "smoothie"
-keywords = ["smoothie"]
-
-[[category]]
 name = "pickles"
 keywords = ["pickle", "pickled", "kimchi"]
 
@@ -305,26 +288,6 @@ keywords = ["lettuce", "romaine", "spring mix", "kale", "arugula", "spinach", "c
 [[category]]
 name = "cucumbers"
 keywords = ["cucumber"]
-
-[[category]]
-name = "peppers"
-keywords = ["pepper", "jalapeno", "shishito"]
-exclude = ["pepper jack", "lemon pepper"]
-
-[[category]]
-name = "onions"
-keywords = ["onion", "scallion", "shallot"]
-
-[[category]]
-name = "olives"
-keywords = ["olive"]
-
-# ---------------------------------------------------------------------------
-# Toppings, cheese, and fruit
-# ---------------------------------------------------------------------------
-[[category]]
-name = "seeds"
-keywords = ["seed"]
 
 [[category]]
 name = "fruit"
