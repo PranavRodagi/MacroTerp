@@ -162,7 +162,7 @@
   }
 
   function mount(el, opts = {}) {
-    const assetBase = opts.assetBase || "assets/food/";
+    const assetBase = opts.assetBase ?? "assets/food/";
     el.classList.add("pv");
     el.innerHTML = `<div class="pv-stage"></div><ol class="pv-legend"></ol>`;
     const stage = el.querySelector(".pv-stage");

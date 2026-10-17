@@ -7,3 +7,7 @@ __pycache__/
 
 # Scraper's local nutrition-label cache (rebuilt on the next run)
 umd_dining.db
+
+# Frontend
+node_modules/
+dist/
