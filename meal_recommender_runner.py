@@ -31,7 +31,7 @@ with menu_path.open("r", encoding="utf-8") as file:
 meals_data = recommender.generate_meals(menu_data, settings)
 
 # Save the returned data as a formatted JSON file.
-output_path = Path("generated_meals.json")
+output_path = Path("meals.json")
 
 with output_path.open("w", encoding="utf-8") as file:
     json.dump(meals_data, file, indent=2, ensure_ascii=False)

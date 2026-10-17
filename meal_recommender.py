@@ -29,8 +29,8 @@ Example integration::
     result = recommender.generate_meals(menu_data, settings)
     json_text = json.dumps(result, indent=2)
 
-The function returns a JSON-serializable dictionary containing one generated
-meal per dining hall. This is a hackathon prototype, not medical advice or an
+The function returns a JSON-serializable dictionary containing two alternative
+meals per dining hall. This is a hackathon prototype, not medical advice or an
 allergy-safety guarantee.
 """
 
@@ -54,6 +54,8 @@ DIETARY_OPTIONS: frozenset[str] = frozenset({
 # Search tuning; these shape the optimizer, not the user's goals.
 BEAM_WIDTH = 80
 CANDIDATE_LIMIT_PER_HALL = 12
+# Alternative meals generated per hall; each shares no food items with the others.
+MEALS_PER_HALL = 2
 
 MACRO_KEYS: tuple[str, ...] = (
     "calories", "protein_g", "carbs_g", "fat_g", "sat_fat_g",
@@ -427,6 +429,37 @@ def make_candidates(
     return result
 
 
+def _food_key(item: MenuItem) -> str:
+    """Return a normalized item name, so the same food at two stations counts once."""
+    return re.sub(r"\s+", " ", str(item.get("name") or "")).strip().lower()
+
+
+def disjoint_meals(
+    items: list[MenuItem], target_cal: float, target_protein: float, settings: UserSettings, count: int,
+) -> list[Candidate]:
+    """Return up to ``count`` best plates that share no food items with each other.
+
+    Each plate is the best-scoring plate built from the items not used by the
+    plates before it, so every alternative is held to the same targets and
+    restrictions. Fewer than ``count`` plates are returned if the pool runs out.
+    """
+    plates: list[Candidate] = []
+    remaining = items
+    for _ in range(count):
+        candidates = make_candidates(remaining, target_cal, target_protein, settings)
+        if not candidates:
+            break
+        best = candidates[0]
+        plates.append(best)
+        used_ids = {x.get("id") for x in best["items"] if x.get("id") is not None}
+        used_names = {_food_key(x) for x in best["items"]}
+        remaining = [
+            x for x in remaining
+            if x.get("id") not in used_ids and _food_key(x) not in used_names
+        ]
+    return plates
+
+
 def compatible_items(
     menu: dict[str, Any], hall: str, settings: UserSettings, categories: Sequence[FoodCategory],
 ) -> tuple[list[MenuItem], int]:
@@ -478,38 +511,41 @@ def recommend(
     warnings: list[str] = []
     for hall in HALL_NAMES:
         compatible, excluded = compatible_items(menu, hall, settings, categories)
-        candidates = make_candidates(compatible, target_cal, target_protein, settings)
+        plates = disjoint_meals(compatible, target_cal, target_protein, settings, MEALS_PER_HALL)
         period_used = meal_period_used(menu, hall, settings.current_meal)
-        if not candidates:
+        for option in range(1, MEALS_PER_HALL + 1):
+            if option > len(plates):
+                recommendations.append({
+                    "dining_hall": hall,
+                    "meal_option": option,
+                    "meal_period_used": period_used,
+                    "items": [],
+                    "nutrition_totals": None,
+                    "status": "No suitable combination found with available, compatible, complete nutrition data.",
+                    "excluded_item_count": excluded,
+                })
+                continue
+
+            best = plates[option - 1]
+            item_names = [str(x.get("name", "Unnamed item")) for x in best["items"]]
             recommendations.append({
                 "dining_hall": hall,
+                "meal_option": option,
                 "meal_period_used": period_used,
-                "items": [],
-                "nutrition_totals": None,
-                "status": "No suitable combination found with available, compatible, complete nutrition data.",
+                "items": [item_summary(x) for x in best["items"]],
+                "nutrition_totals": rounded_macros(best["macros"]),
+                "target_for_this_meal": {
+                    "calories_kcal": round(target_cal, 1),
+                    "protein_g": round(target_protein, 1),
+                },
+                "score": round(best["score"], 3),
+                "status": "Recommendation generated",
                 "excluded_item_count": excluded,
+                "why_this_meal": (
+                    f"Selected {', '.join(item_names)} to balance calories and protein "
+                    "while favoring moderate sodium, sugar, saturated fat, and carbohydrates."
+                ),
             })
-            continue
-
-        best = candidates[0]
-        item_names = [str(x.get("name", "Unnamed item")) for x in best["items"]]
-        recommendations.append({
-            "dining_hall": hall,
-            "meal_period_used": period_used,
-            "items": [item_summary(x) for x in best["items"]],
-            "nutrition_totals": rounded_macros(best["macros"]),
-            "target_for_this_meal": {
-                "calories_kcal": round(target_cal, 1),
-                "protein_g": round(target_protein, 1),
-            },
-            "score": round(best["score"], 3),
-            "status": "Recommendation generated",
-            "excluded_item_count": excluded,
-            "why_this_meal": (
-                f"Selected {', '.join(item_names)} to balance calories and protein "
-                "while favoring moderate sodium, sugar, saturated fat, and carbohydrates."
-            ),
-        })
 
     if "nut_allergy" in settings.dietary:
         warnings.append(
@@ -699,7 +735,7 @@ def _meal_name(items: list[MenuItem]) -> str:
 def generate_meals(
     menu_data: dict[str, Any], settings: UserSettings, food_categories: Sequence[FoodCategory] | None = None,
 ) -> dict[str, Any]:
-    """Generate one meal for each UMD dining hall and return JSON-ready data.
+    """Generate ``MEALS_PER_HALL`` meals for each UMD dining hall and return JSON-ready data.
 
     Parameters
     ----------
@@ -720,7 +756,9 @@ def generate_meals(
     -------
     dict[str, Any]
         A JSON-serializable object with ``source_menu_date`` and a ``meals``
-        list. Each meal includes its dining hall, generated name, item names,
+        list holding ``MEALS_PER_HALL`` entries per hall, numbered by
+        ``meal_option`` (1 is the best match). A hall's options share no food
+        items. Each meal includes its dining hall, generated name, item names,
         generic categories, serving sizes, item macros, total serving weight,
         and combined macros. Convert to a JSON string with ``json.dumps`` or
         write it to a file in the calling application if needed.
@@ -728,7 +766,7 @@ def generate_meals(
     Notes
     -----
     This function does not read command-line arguments, prompt for input,
-    or write files. The three meals are alternatives from the three halls.
+    or write files. All meals are alternatives to one another.
     """
     if not isinstance(menu_data.get("halls"), dict):
         raise ValueError("menu_data must be a parsed menu JSON object with a 'halls' mapping.")
@@ -739,34 +777,37 @@ def generate_meals(
     meals: list[dict[str, Any]] = []
     for hall in HALL_NAMES:
         compatible, _excluded = compatible_items(menu_data, hall, settings, categories)
-        candidates = make_candidates(compatible, target_cal, target_protein, settings)
+        plates = disjoint_meals(compatible, target_cal, target_protein, settings, MEALS_PER_HALL)
 
-        if not candidates:
+        for option in range(1, MEALS_PER_HALL + 1):
+            if option > len(plates):
+                meals.append({
+                    "dining_hall": hall,
+                    "meal_option": option,
+                    "meal_name": "No suitable meal found",
+                    "items": [],
+                    "total_serving_g": 0,
+                    "meal_macros_total": {key: None for key in MACRO_KEYS},
+                })
+                continue
+
+            selected = plates[option - 1]["items"]
+            servings = [number(item.get("serving_g")) for item in selected]
+            known_servings = [value for value in servings if value is not None]
+            total_serving_g = (
+                round(sum(known_servings), 1)
+                if len(known_servings) == len(servings)
+                else None
+            )
+
             meals.append({
                 "dining_hall": hall,
-                "meal_name": "No suitable meal found",
-                "items": [],
-                "total_serving_g": 0,
-                "meal_macros_total": {key: None for key in MACRO_KEYS},
+                "meal_option": option,
+                "meal_name": _meal_name(selected),
+                "items": [_example_item(item) for item in selected],
+                "total_serving_g": total_serving_g,
+                "meal_macros_total": rounded_macros(add_macros(selected)),
             })
-            continue
-
-        selected = candidates[0]["items"]
-        servings = [number(item.get("serving_g")) for item in selected]
-        known_servings = [value for value in servings if value is not None]
-        total_serving_g = (
-            round(sum(known_servings), 1)
-            if len(known_servings) == len(servings)
-            else None
-        )
-
-        meals.append({
-            "dining_hall": hall,
-            "meal_name": _meal_name(selected),
-            "items": [_example_item(item) for item in selected],
-            "total_serving_g": total_serving_g,
-            "meal_macros_total": rounded_macros(add_macros(selected)),
-        })
 
     return {
         "source_menu_date": menu_data.get("date"),

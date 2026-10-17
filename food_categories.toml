@@ -44,13 +44,23 @@ name = "soup"
 keywords = ["soup", "congee", "chowder", "bisque"]
 
 [[category]]
-name = "pickles"
-keywords = ["pickle", "pickled", "kimchi"]
+name = "pancakes"
+keywords = ["pancake"]
+exclude = ["syrup"]
 
 [[category]]
-name = "pancakes and waffles"
-keywords = ["pancake", "waffle", "french toast"]
+name = "waffles"
+keywords = ["waffle"]
 exclude = ["syrup"]
+
+[[category]]
+name = "french toast"
+keywords = ["french toast"]
+exclude = ["syrup"]
+
+[[category]]
+name = "omelette"
+keywords = ["omelette"]
 
 # ---------------------------------------------------------------------------
 # Desserts, baked goods, breakfast, and dairy
