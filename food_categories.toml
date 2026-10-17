@@ -36,10 +36,6 @@ name = "egg roll"
 keywords = ["egg roll"]
 
 [[category]]
-name = "breakfast sandwich"
-keywords = ["breakfast sandwich", "breakfast wrap", "breakfast bagel sandwich"]
-
-[[category]]
 name = "mac and cheese"
 keywords = ["mac and cheese", "mac & cheese", "macaroni and cheese", "macaroni bake"]
 
@@ -112,11 +108,11 @@ keywords = ["quesadilla"]
 
 [[category]]
 name = "wrap"
-keywords = ["wrap", "lavash", "shawarma flat bread"]
+keywords = ["wrap", "lavash", "shawarma flat bread", "breakfast wrap", ]
 
 [[category]]
 name = "sandwich"
-keywords = ["sandwich", "panini", "sub", "grilled cheese", "cheese steak", "cheesesteak"]
+keywords = ["sandwich", "panini", "sub", "grilled cheese", "cheese steak", "cheesesteak", "breakfast sandwich", "breakfast bagel sandwich"]
 
 [[category]]
 name = "burger"
@@ -150,10 +146,6 @@ name = "noodles"
 keywords = ["noodle", "lo mein", "chow mein", "chow fun"]
 
 [[category]]
-name = "fried rice"
-keywords = ["fried rice"]
-
-[[category]]
 name = "rice"
 keywords = ["rice", "risotto"]
 
@@ -168,35 +160,6 @@ keywords = ["fries"]
 [[category]]
 name = "whole potatoes"
 keywords = ["potato", "potaoes", "hash"]
-
-# ---------------------------------------------------------------------------
-# Sauces, dressings, and condiments
-# ---------------------------------------------------------------------------
-[[category]]
-name = "salad dressing"
-keywords = [
-    "dressing", "vinaigrette", "vinagrette", "ff italian", "italian creamy",
-    "farm house", "thousand island",
-]
-
-[[category]]
-name = "sauce"
-# Sauce words only count when they name the item (at the end, or a leading
-# "Sauce"/"Salsa"), so "Tortellini with Cream Sauce" stays pasta.
-patterns = [
-    '\b(sauce|gravy|aioli|mayonnaise|mustard|salsa|pico de gallo|chutney|tzatziki|queso|syrup|marinara)( (roja|verde|blanco|plum))?$',
-    '^(sauce|salsa)\b',
-]
-exclude = ["in syrup"]
-
-[[category]]
-name = "dip"
-keywords = ["hummus", "guacamole"]
-
-[[category]]
-name = "condiment"
-keywords = ["butter", "margarine", "spread", "olive oil", "vinegar", "cream cheese"]
-exclude = ["butter chicken", "butter sage", "butter glazed", "butter pickles"]
 
 # ---------------------------------------------------------------------------
 # Proteins
@@ -362,10 +325,6 @@ keywords = ["olive"]
 [[category]]
 name = "seeds"
 keywords = ["seed"]
-
-[[category]]
-name = "cheese"
-keywords = ["cheese"]
 
 [[category]]
 name = "fruit"
