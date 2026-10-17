@@ -1,0 +1,101 @@
+/* Plate visualizer styles. Requires Noto Serif (see index.html). */
+:root {
+  /* Mostly white, with pastel pink (primary), sage (secondary), blue (tertiary). */
+  --pv-bg: #ffffff;
+  --pv-ink: #2e2a29;
+  --pv-ink-soft: #857a78;
+
+  --pv-pink-50: #fdf3f3;
+  --pv-pink-200: #f6d3d3;
+  --pv-pink-400: #e8a3a8;
+  --pv-pink-700: #b0535f;      /* text-safe pink */
+
+  --pv-sage-50: #f3f6f0;
+  --pv-sage-200: #d5e0cd;
+  --pv-sage-400: #a9bf9d;
+  --pv-sage-700: #5d7553;      /* text-safe sage */
+
+  --pv-blue-50: #f0f5fa;
+  --pv-blue-200: #cfdeec;
+  --pv-blue-400: #9dbcd9;
+  --pv-blue-700: #4f7598;
+
+  --pv-line: #e3cfd0;          /* leader lines: faint pink-grey */
+  --pv-protein: var(--pv-pink-400);
+  --pv-carbs: var(--pv-sage-400);
+  --pv-fat: var(--pv-blue-400);
+  --pv-font: "Noto Serif", Georgia, serif;
+}
+
+.pv { font-family: var(--pv-font); color: var(--pv-ink); container-type: inline-size; }
+.pv-stage { position: relative; width: 100%; user-select: none; }
+.pv-svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.pv-svg--over { pointer-events: none; }
+
+.pv-food {
+  position: absolute;
+  height: auto;
+  transform: translate(-50%, -50%) rotate(var(--rot, 0deg)) scaleX(var(--flip, 1));
+  /* Soft, short shadow: bright overhead light. Also separates overlapping pieces. */
+  filter: drop-shadow(0 4px 5px rgba(80, 55, 45, 0.18)) drop-shadow(0 1px 1px rgba(40, 25, 20, 0.10));
+}
+.pv-food--bowl { filter: drop-shadow(0 8px 12px rgba(80, 55, 45, 0.14)) drop-shadow(0 1px 2px rgba(40, 25, 20, 0.08)); }
+.pv-food--missing {
+  aspect-ratio: 1; border-radius: 50%;
+  background: var(--pv-pink-50); display: grid; place-items: center;
+  font-size: clamp(10px, 1.3cqw, 13px); color: var(--pv-ink-soft); font-style: italic; text-align: center;
+}
+
+.pv-leader { fill: none; stroke: var(--pv-line); stroke-width: 1.2; stroke-linejoin: round; }
+.pv-dot { fill: #fff; stroke: var(--pv-pink-400); stroke-width: 1.6; }
+
+.pv-label {
+  position: absolute;
+  max-width: 17%;
+  transform: translateY(-0.68em);  /* line meets the middle of the name row */
+  font-size: clamp(12px, 1.85cqw, 19px);
+  line-height: 1.35;
+}
+.pv-label--left { text-align: right; }
+.pv-name { font-weight: 500; letter-spacing: -0.005em; }
+.pv-meta {
+  margin-top: 0.3em;
+  font-size: 0.72em;
+  color: var(--pv-ink-soft);
+  font-variant-numeric: tabular-nums;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0.3em 0.5em;
+}
+.pv-label--left .pv-meta { justify-content: flex-end; }
+.pv-cal {
+  color: var(--pv-pink-700); font-weight: 600;
+  background: var(--pv-pink-50); border-radius: 999px; padding: 0.05em 0.6em;
+}
+.pv-servings {
+  color: var(--pv-sage-700);
+  background: var(--pv-sage-50); border-radius: 999px; padding: 0.05em 0.6em;
+}
+.pv-macros { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 0.15em 0.6em; }
+.pv-label--left .pv-macros { justify-content: flex-end; }
+.pv-macro::before {
+  content: ""; display: inline-block; width: 0.55em; height: 0.55em; border-radius: 50%;
+  margin-right: 0.3em; vertical-align: 0.04em;
+}
+.pv-p::before { background: var(--pv-protein); }
+.pv-c::before { background: var(--pv-carbs); }
+.pv-f::before { background: var(--pv-fat); }
+
+/* Compact: numbered pins on the food + a legend list. */
+.pv-pin circle { fill: #fff; stroke: var(--pv-pink-400); stroke-width: 2; }
+.pv-pin text {
+  font: 600 17px var(--pv-font); fill: var(--pv-pink-700);
+  text-anchor: middle; dominant-baseline: central;
+}
+.pv-legend { display: none; list-style: none; margin: 8px 0 0; padding: 0; }
+.pv--compact .pv-legend { display: grid; gap: 14px; }
+.pv-legend li { display: flex; gap: 12px; align-items: flex-start; font-size: 15px; line-height: 1.35; }
+.pv-legend .pv-meta { font-size: 12.5px; }
+.pv-num {
+  flex: none; width: 24px; height: 24px; border-radius: 50%;
+  border: 1.5px solid var(--pv-pink-400); color: var(--pv-pink-700);
+  display: grid; place-items: center; font-size: 12.5px; font-weight: 600;
+}

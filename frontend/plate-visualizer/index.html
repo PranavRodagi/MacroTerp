@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Plate Visualizer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="plate-visualizer.css">
+  <style>
+    /* Demo shell only — the real screen gets built in Figma. */
+    body { margin: 0; background: #fff; color: var(--pv-ink); font-family: var(--pv-font); }
+    main { max-width: 1040px; margin: 0 auto; padding: 32px 16px 56px; }
+    .switch { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 28px; }
+    .switch button {
+      font: 500 14px var(--pv-font); color: var(--pv-ink-soft);
+      background: #fff; border: 1px solid var(--pv-sage-200); border-radius: 999px; padding: 7px 16px; cursor: pointer;
+    }
+    .switch button[aria-pressed="true"] { color: var(--pv-sage-700); background: var(--pv-sage-50); border-color: var(--pv-sage-400); }
+    header { text-align: center; }
+    .hall { margin: 0; font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--pv-sage-700); font-weight: 600; }
+    h1 { margin: 6px 0 0; font-size: clamp(24px, 4vw, 34px); font-weight: 500; letter-spacing: -0.01em; }
+    .totals { display: flex; justify-content: center; gap: clamp(20px, 5vw, 48px); margin-top: 24px; flex-wrap: wrap; }
+    .stat { text-align: center; }
+    .stat b { display: block; font-size: 24px; font-weight: 500; font-variant-numeric: tabular-nums; }
+    .stat span { font-size: 12.5px; color: var(--pv-ink-soft); }
+    .stat span::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 6px; background: var(--c); }
+    .stat--cal b { color: var(--pv-pink-700); }
+    .stat--cal span::before { display: none; }
+    .split { display: flex; height: 6px; width: min(360px, 100%); margin: 18px auto 0; border-radius: 3px; overflow: hidden; gap: 2px; }
+    .split i { display: block; }
+  </style>
+</head>
+<body>
+  <main>
+    <nav class="switch" aria-label="Sample meals"></nav>
+    <header>
+      <p class="hall" id="hall"></p>
+      <h1 id="meal-name"></h1>
+    </header>
+    <div id="plate"></div>
+    <section class="totals" id="totals"></section>
+    <div class="split" id="split" aria-hidden="true"></div>
+  </main>
+
+  <script src="food-assets.js"></script>
+  <script src="sample-meals.js"></script>
+  <script src="plate-visualizer.js"></script>
+  <script>
+    const meals = window.SAMPLE_MEALS.meals;
+    const viz = PlateVisualizer.mount(document.getElementById("plate"), { assetBase: "assets/food/" });
+    const nav = document.querySelector(".switch");
+    const r = (n) => (n == null ? "–" : Math.round(n));
+
+    function show(i) {
+      const meal = meals[i];
+      nav.querySelectorAll("button").forEach((b, j) => b.setAttribute("aria-pressed", j === i));
+      document.getElementById("hall").textContent = meal.dining_hall;
+      document.getElementById("meal-name").textContent = meal.meal_name;
+      viz.render(meal);
+      const t = meal.meal_macros_total || {};
+      document.getElementById("totals").innerHTML = `
+        <div class="stat stat--cal"><b>${r(t.calories)}</b><span>calories</span></div>
+        <div class="stat" style="--c:var(--pv-protein)"><b>${r(t.protein_g)}g</b><span>protein</span></div>
+        <div class="stat" style="--c:var(--pv-carbs)"><b>${r(t.carbs_g)}g</b><span>carbs</span></div>
+        <div class="stat" style="--c:var(--pv-fat)"><b>${r(t.fat_g)}g</b><span>fat</span></div>`;
+      // Share of calories from each macro.
+      const kcal = [(t.protein_g || 0) * 4, (t.carbs_g || 0) * 4, (t.fat_g || 0) * 9];
+      const sum = kcal.reduce((a, b) => a + b, 0) || 1;
+      document.getElementById("split").innerHTML = ["--pv-protein", "--pv-carbs", "--pv-fat"]
+        .map((c, k) => `<i style="flex:${kcal[k] / sum};background:var(${c})"></i>`).join("");
+    }
+
+    meals.forEach((m, i) => {
+      const b = document.createElement("button");
+      b.textContent = m.dining_hall;
+      b.onclick = () => show(i);
+      nav.appendChild(b);
+    });
+    show(Math.min(meals.length - 1, Number(new URLSearchParams(location.search).get("meal")) || 0));
+  </script>
+</body>
+</html>
