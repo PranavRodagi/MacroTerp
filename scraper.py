@@ -10,13 +10,13 @@ Setup:
     pip install requests beautifulsoup4
 
 Usage:
-    python umd_dining_scraper.py                         # scrape today's menus, write menu.json
-    python umd_dining_scraper.py --date 2026-10-18       # same, for another date
-    python umd_dining_scraper.py inspect                 # show halls + form fields the site uses
-    python umd_dining_scraper.py scrape                  # today's menus, all halls
-    python umd_dining_scraper.py scrape --date 2026-10-18 --days 3
-    python umd_dining_scraper.py export --date 2026-10-18   # writes menu.json
-    python umd_dining_scraper.py export --output other.json
+    python scraper.py                         # scrape today's menus, write menu.json
+    python scraper.py --date 2026-10-18       # same, for another date
+    python scraper.py inspect                 # show halls + form fields the site uses
+    python scraper.py scrape                  # today's menus, all halls
+    python scraper.py scrape --date 2026-10-18 --days 3
+    python scraper.py export --date 2026-10-18   # writes menu.json
+    python scraper.py export --output other.json
 """
 from __future__ import annotations
 
