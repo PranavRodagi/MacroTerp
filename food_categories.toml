@@ -146,13 +146,8 @@ keywords = ["shrimp"]
 meat = true
 
 [[category]]
-name = "salmon"
-keywords = ["salmon"]
-meat = true
-
-[[category]]
 name = "fish"      # image: salmon
-keywords = ["fish", "catfish", "tilapia", "cod", "pollock", "tuna"]
+keywords = ["fish", "catfish", "tilapia", "cod", "pollock", "tuna", "salmon"]
 meat = true
 
 [[category]]

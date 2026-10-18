@@ -22,7 +22,7 @@ window.FOOD_ASSETS = {
   pork:               { src: "pork.webp",             scale: 0.38, role: "main",   kind: "plate", repeat: false, rotate: 0 },
   sausage:            { src: "sausage.webp",          scale: 0.40, role: "main",   kind: "plate", repeat: true,  rotate: -10 },
   bacon:              { src: "bacon.webp",            scale: 0.40, role: "main",   kind: "plate", repeat: false, rotate: -8 },
-  salmon:             { src: "salmon.webp",           scale: 0.42, role: "main",   kind: "plate", repeat: true,  rotate: -14 },
+  fish:               { src: "fish.webp",             scale: 0.42, role: "main",   kind: "plate", repeat: true,  rotate: -14 },
   shrimp:             { src: "shrimp.webp",           scale: 0.34, role: "main",   kind: "plate", repeat: false, rotate: 0 },
   tofu:               { src: "tofu.webp",             scale: 0.38, role: "main",   kind: "plate", repeat: false, rotate: 0 },
   eggs:               { src: "eggs.webp",             scale: 0.44, role: "main",   kind: "plate", repeat: false, rotate: 0 },
@@ -67,9 +67,10 @@ window.FOOD_ASSETS = {
 
 // The recommender renames vegan/vegetarian versions of meat categories "plant-based <meat>"
 // (see `meat = true` in food_categories.toml); show them with the same image.
-for (const meat of ["chicken", "turkey", "beef", "pork", "sausage", "bacon", "salmon", "shrimp"]) {
+for (const meat of ["chicken", "turkey", "beef", "pork", "sausage", "bacon", "fish", "shrimp"]) {
   window.FOOD_ASSETS["plant-based-" + meat] = { ...window.FOOD_ASSETS[meat] };
 }
 
-// Older name used by the standalone demo's sample meals.
+// Older names used by the standalone demo's sample meals.
 window.FOOD_ASSETS.spaghetti = { ...window.FOOD_ASSETS.pasta };
+window.FOOD_ASSETS.salmon = { ...window.FOOD_ASSETS.fish };
