@@ -115,7 +115,7 @@ class UserSettings:
     carb_min_g: float = 15.0
     carb_max_g: float = 100.0
     fiber_min_g: float = 3.0
-    max_items_per_meal: int = 5
+    max_items_per_meal: int = 6
     dietary: frozenset[str] = field(init=False)
 
     def __post_init__(self) -> None:
@@ -360,10 +360,19 @@ def score_plate(
     return score, m
 
 
+def _has_green(items: list[MenuItem]) -> bool:
+    """Return True if any item on the plate is from a green food category."""
+    return any(item.get("_green") for item in items)
+
+
 def make_candidates(
     items: list[MenuItem], target_cal: float, target_protein: float, settings: UserSettings,
 ) -> list[Candidate]:
-    """Return up to ``CANDIDATE_LIMIT_PER_HALL`` distinct plates, best-scoring first."""
+    """Return up to ``CANDIDATE_LIMIT_PER_HALL`` distinct plates, best-scoring first.
+
+    Every plate has at least one green item and at most one item per food
+    category (``_category``, set by ``compatible_items``).
+    """
     # Drop malformed/unknown nutrition records from numerical optimization.
     pool = [item for item in items if nutrition_complete(item)]
     if not pool:
@@ -375,7 +384,8 @@ def make_candidates(
         -((macros_of(item)["protein_g"] or 0) / max((macros_of(item)["calories"] or 0), 40)),
         (macros_of(item)["sodium_mg"] or 0),
     ))
-    pool = pool[:90]
+    # Every plate needs a green item, so keep green foods even if they rank low.
+    pool = pool[:90] + [item for item in pool[90:] if item.get("_green")]
 
     # Beam search builds small combinations without enumerating every subset.
     beam: list[tuple[list[MenuItem], float]] = [([], 0.0)]
@@ -392,26 +402,44 @@ def make_candidates(
                 item = pool[idx]
                 if any(x.get("id") == item.get("id") for x in chosen):
                     continue
+                # One item per food category, so the plate shows distinct foods.
+                if any(x.get("_category") == item.get("_category") for x in chosen):
+                    continue
                 plate = chosen + [item]
                 score, macros = score_plate(plate, target_cal, target_protein, settings)
-                ids = tuple(sorted(int(x.get("id", id(x))) for x in plate))
-                completed[ids] = {
-                    "items": plate,
-                    "score": score,
-                    "macros": macros,
-                }
+                # Only plates with a green item are finished meals; others may
+                # still gain one in a later round.
+                if _has_green(plate):
+                    ids = tuple(sorted(int(x.get("id", id(x))) for x in plate))
+                    completed[ids] = {
+                        "items": plate,
+                        "score": score,
+                        "macros": macros,
+                    }
                 next_beam.append((plate, score))
         next_beam.sort(key=lambda pair: pair[1])
         # Deduplicate beam by item IDs and preserve best-scoring combinations.
+        # Half the beam is kept for plates that already have a green item, so
+        # plates without one can't crowd out every valid meal.
         seen: set[tuple[str, ...]] = set()
         beam = []
+        green_slots = BEAM_WIDTH // 2
+        other_slots = BEAM_WIDTH - green_slots
         for plate, score in next_beam:
             key = tuple(sorted(str(x.get("id", x.get("name"))) for x in plate))
             if key in seen:
                 continue
             seen.add(key)
+            if _has_green(plate):
+                if green_slots == 0:
+                    continue
+                green_slots -= 1
+            else:
+                if other_slots == 0:
+                    continue
+                other_slots -= 1
             beam.append((plate, score))
-            if len(beam) >= BEAM_WIDTH:
+            if green_slots == 0 and other_slots == 0:
                 break
 
     ranked = sorted(completed.values(), key=lambda x: x["score"])
@@ -466,16 +494,20 @@ def compatible_items(
     """Return (usable items, count of excluded items) for ``hall``.
 
     Usable items pass the user's dietary restrictions and map to a known
-    generic food category; each gets its category stored as ``_generic_name``.
-    Items failing either check are counted as excluded.
+    generic food category; each gets its generic name stored as
+    ``_generic_name``, its base category name (shared by "chicken" and
+    "plant-based chicken") as ``_category``, and whether that category is
+    green as ``_green``. Items failing either check are counted as excluded.
     """
     compatible: list[MenuItem] = []
     excluded = 0
     for item in menu_items(menu, hall, settings.current_meal):
         allowed, _reason = dietary_compatible(item, settings.dietary)
-        generic_name = generic_food_name(item, categories)
-        if allowed and generic_name != UNKNOWN_FOOD:
+        generic_name, category = food_category(item, categories)
+        if allowed and category is not None:
             item["_generic_name"] = generic_name
+            item["_category"] = category.name
+            item["_green"] = category.green
             compatible.append(item)
         else:
             excluded += 1
@@ -599,7 +631,7 @@ def recommend(
 
 DEFAULT_FOOD_CATEGORIES_PATH = Path(__file__).with_name("food_categories.toml")
 UNKNOWN_FOOD = "unknown"
-_CATEGORY_KEYS = frozenset({"name", "keywords", "patterns", "exclude", "meat"})
+_CATEGORY_KEYS = frozenset({"name", "keywords", "patterns", "exclude", "meat", "green"})
 
 
 @dataclass(frozen=True)
@@ -610,6 +642,7 @@ class FoodCategory:
     include: tuple[re.Pattern[str], ...]
     exclude: tuple[re.Pattern[str], ...] = ()
     meat: bool = False
+    green: bool = False
 
     def matches(self, item_name: str) -> bool:
         """Return True if ``item_name`` hits an include pattern and no exclude pattern."""
@@ -661,8 +694,11 @@ def load_food_categories(path: str | Path = DEFAULT_FOOD_CATEGORIES_PATH) -> tup
         patterns = _string_list(entry, "patterns", label)
         excludes = _string_list(entry, "exclude", label)
         meat = entry.get("meat", False)
+        green = entry.get("green", False)
         if not isinstance(meat, bool):
             raise ValueError(f"{label}: 'meat' must be true or false.")
+        if not isinstance(green, bool):
+            raise ValueError(f"{label}: 'green' must be true or false.")
         if not keywords and not patterns:
             raise ValueError(f"{label}: needs at least one keyword or pattern.")
         try:
@@ -679,6 +715,7 @@ def load_food_categories(path: str | Path = DEFAULT_FOOD_CATEGORIES_PATH) -> tup
             include=include,
             exclude=tuple(_keyword_pattern(keyword) for keyword in excludes),
             meat=meat,
+            green=green,
         ))
 
     if not categories:
@@ -686,14 +723,14 @@ def load_food_categories(path: str | Path = DEFAULT_FOOD_CATEGORIES_PATH) -> tup
     return tuple(categories)
 
 
-def generic_food_name(item: MenuItem, categories: Sequence[FoodCategory]) -> str:
-    """Map a specific dining-menu item to a broad food category.
+def food_category(item: MenuItem, categories: Sequence[FoodCategory]) -> tuple[str, FoodCategory | None]:
+    """Return (generic name, matched category) for a dining-menu item.
 
     Matches the item name (never ingredients, which are too noisy; pizza
     dough lists eggs) against ``categories`` in order. Meat categories on
     items the dining hall tags vegan/vegetarian (e.g. "Vegan Chicken Slider")
     become "plant-based <category>". Items matching no category are
-    ``UNKNOWN_FOOD``.
+    ``(UNKNOWN_FOOD, None)``.
     """
     name = re.sub(r"\s+", " ", str(item.get("name") or "").lower()).strip()
 
@@ -702,12 +739,17 @@ def generic_food_name(item: MenuItem, categories: Sequence[FoodCategory]) -> str
         # so "Vegan Chicken Slider" isn't just a burger.
         for category in categories:
             if category.meat and category.matches(name):
-                return f"plant-based {category.name}"
+                return f"plant-based {category.name}", category
 
     for category in categories:
         if category.matches(name):
-            return category.name
-    return UNKNOWN_FOOD
+            return category.name, category
+    return UNKNOWN_FOOD, None
+
+
+def generic_food_name(item: MenuItem, categories: Sequence[FoodCategory]) -> str:
+    """Map a specific dining-menu item to a broad food category name (see ``food_category``)."""
+    return food_category(item, categories)[0]
 
 
 def _example_item(item: MenuItem) -> dict[str, Any]:
@@ -758,7 +800,8 @@ def generate_meals(
         A JSON-serializable object with ``source_menu_date`` and a ``meals``
         list holding ``MEALS_PER_HALL`` entries per hall, numbered by
         ``meal_option`` (1 is the best match). A hall's options share no food
-        items. Each meal includes its dining hall, generated name, item names,
+        items, every meal has at least one green item, and no meal has two
+        items from the same food category. Each meal includes its dining hall, generated name, item names,
         generic categories, serving sizes, item macros, total serving weight,
         and combined macros. Convert to a JSON string with ``json.dumps`` or
         write it to a file in the calling application if needed.

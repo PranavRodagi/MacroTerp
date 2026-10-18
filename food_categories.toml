@@ -21,6 +21,11 @@
 #   meat      true for meat/fish categories. Items UMD tags vegan or vegetarian
 #             that match one become "plant-based <name>" (shown with the same
 #             image), and this check runs before normal ordering.
+#   green     true for visibly green foods. Every generated meal includes at
+#             least one item from a green category.
+#
+# A meal never has two items from the same category (a "plant-based <name>"
+# counts as <name>), so plates show distinct foods.
 #
 # Items that match nothing are named "unknown" and left out of generated meals.
 # That is intentional for sauces, dressings, cheeses, breads, toppings and
@@ -199,6 +204,7 @@ keywords = ["chickpea", "garbanzo", "chana"]
 [[category]]
 name = "green beans"
 keywords = ["green bean"]
+green = true
 
 [[category]]
 name = "beans"     # image: chickpeas
@@ -211,10 +217,12 @@ exclude = ["sprout"]
 [[category]]
 name = "broccoli"
 keywords = ["broccoli"]
+green = true
 
 [[category]]
 name = "brussels sprouts"
 keywords = ["brussels sprout", "brussel sprout"]
+green = true
 
 [[category]]
 name = "cauliflower"
@@ -236,6 +244,7 @@ keywords = [
     "spinach", "cabbage", "cucumber",
 ]
 exclude = ["smoothie", "tortilla", "squash"]
+green = true
 
 [[category]]
 name = "mixed vegetables"
@@ -245,6 +254,7 @@ keywords = [
     "grilled peppers", "stir fry", "kimchi",
 ]
 exclude = ["milk", "sauce"]
+green = true
 
 [[category]]
 name = "fruit"
