@@ -129,10 +129,16 @@ export default function App() {
     return null;
   };
 
-  const savePersonalization = (personalization: Personalization) => {
-    const updated = { ...profile!, personalization };
+  // Updates the screen right away, saves in the background, and rolls back if the save fails.
+  // Resolves to an error message, or null on success.
+  const savePersonalization = async (personalization: Personalization) => {
+    const previous = profile!;
+    const updated = { ...previous, personalization };
     setProfile(updated);
-    upsertProfile(updated);
+    const { error } = await upsertProfile(updated);
+    if (!error) return null;
+    setProfile(previous);
+    return error.message || messages.saveFailed;
   };
 
   const logOut = async () => {
