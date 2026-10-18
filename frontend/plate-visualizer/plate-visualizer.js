@@ -3,6 +3,9 @@
 //   const viz = PlateVisualizer.mount(element, { assetBase: "assets/food/" });
 //   viz.render(meal);   // meal = one entry of the meals JSON
 //
+// Foods and labels slide in from their own side: slowly on the first render, quickly
+// after that. Pass { firstEnter: "fast" } to skip the slow intro (e.g. a re-mount).
+//
 // Everything is laid out in a fixed coordinate space (STAGE units) and scaled
 // to the container, so it looks the same at any size. Below COMPACT_BELOW px
 // wide, side labels are swapped for numbered pins plus a legend.
@@ -10,6 +13,7 @@
   const STAGE = { w: 1000, h: 680 };
   const PLATE = { cx: 500, cy: 350, r: 280 };
   const COMPACT_BELOW = 620;           // container px
+  const ENTER_WAVE = { main: 0, starch: 1, veg: 1, other: 2 }; // entrance order (see .pv-enter)
   const COMPACT_CROP = { x: 150, w: 700 };
   const LABEL_GAP = 96;                // min vertical gap between labels (stage units)
   const LABEL_X = { left: 170, right: 830 };
@@ -235,6 +239,12 @@
     const legend = el.querySelector(".pv-legend");
     let meal = null;
     let compact = null;
+    let enter = opts.firstEnter ?? "slow"; // speed of the next render's entrance; null = none
+    // SVG units per CSS px, so leader lines slide the same distance as the HTML labels.
+    const setSvgScale = () => {
+      const view = compact ? COMPACT_CROP : { x: 0, w: STAGE.w };
+      if (el.clientWidth) stage.style.setProperty("--pv-svg-scale", view.w / el.clientWidth);
+    };
 
     function draw() {
       if (!meal) return;
@@ -244,15 +254,24 @@
       const pw = (w) => (w / view.w) * 100;
       const items = layout(meal.items || []);
       el.classList.toggle("pv--compact", compact);
+      // Only render() animates; a redraw from resizing just swaps the layout in place.
+      stage.className = "pv-stage" + (enter ? ` pv-enter pv-enter--${enter}` : "");
+      enter = null;
+      // Each item slides in from its label side, in waves: mains, then starches and veg
+      // together, then everything else (other foods, side bowls). Empty waves are skipped.
+      const waveOf = (p) => (p.kind !== "plate" ? 2 : ENTER_WAVE[p.role] ?? 2);
+      const waves = [...new Set(items.map(waveOf))].sort((a, b) => a - b);
+      const motion = (p) => `--from:${p.side === "left" ? -1 : 1};--i:${waves.indexOf(waveOf(p))}`;
       stage.style.aspectRatio = `${view.w} / ${STAGE.h}`;
+      setSvgScale();
 
       const lines = compact ? "" : items.map((p) => {
         const ex = ELBOW_X[p.side], lx = LABEL_X[p.side];
-        return `<path class="pv-leader" d="M${p.ax},${p.ay} L${ex},${p.ly} L${lx},${p.ly}"/>
-                <circle class="pv-dot" cx="${p.ax}" cy="${p.ay}" r="4.2"/>`;
+        return `<g class="pv-callout" style="${motion(p)}"><path class="pv-leader" d="M${p.ax},${p.ay} L${ex},${p.ly} L${lx},${p.ly}"/>
+                <circle class="pv-dot" cx="${p.ax}" cy="${p.ay}" r="4.2"/></g>`;
       }).join("");
       const pins = !compact ? "" : items.map((p) =>
-        `<g class="pv-pin"><circle cx="${p.ax}" cy="${p.ay}" r="15"/><text x="${p.ax}" y="${p.ay}">${p.num}</text></g>`).join("");
+        `<g class="pv-pin pv-callout" style="${motion(p)}"><circle cx="${p.ax}" cy="${p.ay}" r="15"/><text x="${p.ax}" y="${p.ay}">${p.num}</text></g>`).join("");
 
       // Layering: side bowls first; then on-plate foods from biggest to smallest, so nestled
       // sides sit on top of a ring main instead of disappearing under it; a centred main (5–6
@@ -261,7 +280,7 @@
       const drawOrder = (a, b) => rank(a) - rank(b) || b.baseW - a.baseW;
       const foods = items.slice().sort(drawOrder).flatMap((p) =>
         p.sprites.slice().sort((a, b) => a.y - b.y).map((s) => {
-          const style = `left:${px(s.x)}%;top:${py(s.y)}%;width:${pw(s.w)}%;--rot:${s.rot}deg;--flip:${s.flip ? -1 : 1}`;
+          const style = `left:${px(s.x)}%;top:${py(s.y)}%;width:${pw(s.w)}%;--rot:${s.rot}deg;--flip:${s.flip ? -1 : 1};${motion(p)}`;
           return p.asset
             ? `<img class="pv-food pv-food--${p.kind}" src="${assetBase}${p.asset.src}" alt="" style="${style}" draggable="false">`
             : `<div class="pv-food pv-food--missing" style="${style}"><span>${esc(p.item.generic_name || p.item.name)}</span></div>`;
@@ -269,7 +288,7 @@
 
       const labels = compact ? "" : items.map((p) => {
         const pos = p.side === "left" ? `right:${100 - px(LABEL_X.left)}%` : `left:${px(LABEL_X.right)}%`;
-        return `<div class="pv-label pv-label--${p.side}" style="${pos};top:${py(p.ly)}%">${labelBody(p.item)}</div>`;
+        return `<div class="pv-label pv-label--${p.side}" style="${pos};top:${py(p.ly)}%;${motion(p)}">${labelBody(p.item)}</div>`;
       }).join("");
 
       stage.innerHTML = `
@@ -283,12 +302,16 @@
 
     const ro = new ResizeObserver(([entry]) => {
       const next = entry.contentRect.width < COMPACT_BELOW;
-      if (next !== compact) { compact = next; draw(); }
+      if (next !== compact) { compact = next; draw(); } else setSvgScale();
     });
     ro.observe(el);
 
     return {
-      render(m) { meal = m; if (compact !== null) draw(); },
+      render(m) {
+        if (meal) enter = "fast";
+        meal = m;
+        if (compact !== null) draw();
+      },
       destroy() { ro.disconnect(); el.innerHTML = ""; },
     };
   }
