@@ -11,3 +11,7 @@ umd_dining.db
 # Frontend
 node_modules/
 dist/
+
+# Local environment settings (Supabase URL and key); see frontend/app/.env.example
+.env
+.env.local
