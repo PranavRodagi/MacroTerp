@@ -2,7 +2,7 @@
 # The frontend is hosted on Vercel separately (frontend/app/vercel.json forwards /api/* here).
 services:
   - type: web
-    name: nourishumd-api          # the URL becomes https://<name>.onrender.com; update vercel.json if it differs
+    name: macroterp-api          # the URL becomes https://<name>.onrender.com; update vercel.json if it differs
     runtime: python
     plan: free
     branch: main
