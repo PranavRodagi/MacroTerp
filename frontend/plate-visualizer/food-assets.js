@@ -11,6 +11,8 @@
 // repeat – true: extra servings show as extra overlapping copies (scoops of
 //          rice, florets). false: extra servings make the one image bigger.
 // rotate – base rotation in degrees.
+// copies – optional: always draw at least this many overlapping copies, for pictures that
+//          look thin on their own (one serving of tofu or beef reads better as a pile of two).
 //
 // New images: drop a transparent PNG in assets/food and run `npm run food-images`
 // in frontend/app (see frontend/tools/process_food_pngs.mjs), then add an entry here.
@@ -18,13 +20,13 @@ window.FOOD_ASSETS = {
   // Mains
   chicken:            { src: "chicken.webp",          scale: 0.44, role: "main",   kind: "plate", repeat: false, rotate: -8 },
   turkey:             { src: "turkey.webp",           scale: 0.40, role: "main",   kind: "plate", repeat: false, rotate: -6 },
-  beef:               { src: "beef.webp",             scale: 0.34, role: "main",   kind: "plate", repeat: false, rotate: 0 },
+  beef:               { src: "beef.webp",             scale: 0.29, role: "main",   kind: "plate", repeat: false, rotate: 0, copies: 2 },
   pork:               { src: "pork.webp",             scale: 0.38, role: "main",   kind: "plate", repeat: false, rotate: 0 },
   sausage:            { src: "sausage.webp",          scale: 0.40, role: "main",   kind: "plate", repeat: true,  rotate: -10 },
   bacon:              { src: "bacon.webp",            scale: 0.40, role: "main",   kind: "plate", repeat: false, rotate: -8 },
   fish:               { src: "fish.webp",             scale: 0.42, role: "main",   kind: "plate", repeat: true,  rotate: -14 },
   shrimp:             { src: "shrimp.webp",           scale: 0.34, role: "main",   kind: "plate", repeat: false, rotate: 0 },
-  tofu:               { src: "tofu.webp",             scale: 0.38, role: "main",   kind: "plate", repeat: false, rotate: 0 },
+  tofu:               { src: "tofu.webp",             scale: 0.31, role: "main",   kind: "plate", repeat: false, rotate: 0, copies: 2 },
   eggs:               { src: "eggs.webp",             scale: 0.44, role: "main",   kind: "plate", repeat: false, rotate: 0 },
   burger:             { src: "burger.webp",           scale: 0.46, role: "main",   kind: "plate", repeat: false, rotate: 0 },
   sandwich:           { src: "sandwich.webp",         scale: 0.48, role: "main",   kind: "plate", repeat: false, rotate: 6 },
@@ -34,6 +36,7 @@ window.FOOD_ASSETS = {
   quesadilla:         { src: "quesadilla.webp",       scale: 0.36, role: "main",   kind: "plate", repeat: true,  rotate: 0 },
   "mac-and-cheese":   { src: "mac-and-cheese.webp",   scale: 0.34, role: "main",   kind: "plate", repeat: false, rotate: 0 },
   pasta:              { src: "pasta.webp",            scale: 0.40, role: "main",   kind: "plate", repeat: false, rotate: 0 },
+  noodles:            { src: "noodles.webp",          scale: 0.38, role: "main",   kind: "plate", repeat: false, rotate: 0 },
   pancakes:           { src: "pancakes.webp",         scale: 0.38, role: "main",   kind: "plate", repeat: true,  rotate: 0 },
   waffles:            { src: "waffles.webp",          scale: 0.38, role: "main",   kind: "plate", repeat: true,  rotate: 8 },
   "french-toast":     { src: "french-toast.webp",     scale: 0.40, role: "main",   kind: "plate", repeat: false, rotate: -6 },
@@ -44,6 +47,8 @@ window.FOOD_ASSETS = {
   "roasted-potatoes": { src: "roasted-potatoes.webp", scale: 0.30, role: "starch", kind: "plate", repeat: true,  rotate: 0 },
   fries:              { src: "fries.webp",            scale: 0.34, role: "starch", kind: "plate", repeat: false, rotate: 0 },
   chickpeas:          { src: "chickpeas.webp",        scale: 0.28, role: "starch", kind: "plate", repeat: true,  rotate: 0 },
+  // Black beans (the category also covers red/garbanzo beans, chili, edamame).
+  beans:              { src: "beans.webp",            scale: 0.30, role: "starch", kind: "plate", repeat: true,  rotate: 8 },
 
   // Vegetables
   broccoli:           { src: "broccoli.webp",         scale: 0.28, role: "veg",    kind: "plate", repeat: true,  rotate: 10 },

@@ -24,6 +24,8 @@ Transparent PNG cut-out (the usual case):
 2. In `../app`, run `npm run food-images` (writes `assets/food/<generic-name>.webp`).
 3. Add an entry to `food-assets.js` and adjust `scale` until it looks right next to the others.
 
-Fake checkerboard background or a sprite sheet: use `../tools/process_food_images.py` instead (add the file to `SINGLES` or `SHEETS`, run `python ../tools/process_food_images.py <raw_dir> assets/food`; needs `pillow numpy scipy`).
+Fake checkerboard or plain white background (JPEG or PNG, any folder): `npm run food-images -- --checker --name <generic name> <file>`.
+
+Sprite sheet of several foods: use `../tools/process_food_images.py` (add the file to `SHEETS`, run `python ../tools/process_food_images.py <raw_dir> assets/food`; needs `pillow numpy scipy`).
 
 Below 620px wide, side labels become numbered pins with a legend underneath.

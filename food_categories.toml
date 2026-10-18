@@ -7,7 +7,7 @@
 # Each [[category]] maps menu items to a generic name by matching the item's
 # NAME (never its ingredients). Categories are checked top to bottom and the
 # first match wins, so dishes come before the ingredients they contain
-# ("pizza" before "sausage", "pasta" before "lentils", "soup" before "chicken").
+# ("pizza" before "sausage", "soup" before "chicken").
 #
 # Fields:
 #   name      Generic name shown in output (required, unique).
@@ -195,10 +195,6 @@ exclude = ["egg roll"]
 [[category]]
 name = "chickpeas"
 keywords = ["chickpea", "garbanzo", "chana"]
-
-[[category]]
-name = "lentils"   # image: chickpeas
-keywords = ["lentil"]
 
 [[category]]
 name = "green beans"
