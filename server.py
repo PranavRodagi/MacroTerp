@@ -1,7 +1,10 @@
 """Small JSON API that serves meal recommendations to the frontend.
 
 Usage:
-    python server.py            # http://localhost:8000
+    python server.py            # http://localhost:8000 (or $PORT, which hosts like Render set)
+
+GET /api/health
+→ {"ok": true, "menu_date": "..."}; used as the host's health check.
 
 POST /api/meals
     {
@@ -24,6 +27,7 @@ from __future__ import annotations
 
 import json
 import math
+import os
 import threading
 from dataclasses import dataclass
 from http import HTTPStatus
@@ -33,9 +37,10 @@ from typing import Any, cast
 
 import meal_recommender as recommender
 
-PORT = 8000
+PORT = int(os.environ.get("PORT", "8000"))
 MENU_PATH = Path(__file__).with_name("menu.json")
 MEALS_ENDPOINT = "/api/meals"
+HEALTH_ENDPOINT = "/api/health"
 MAX_ITEMS_PER_MEAL = 6
 CARB_MIN_G = 15.0
 MAX_CACHED_RESPONSES = 200
@@ -154,7 +159,7 @@ def recommend(body: JSONObject, settings: recommender.UserSettings) -> JSONObjec
 # ---------------------------------------------------------------- HTTP
 
 class Handler(BaseHTTPRequestHandler):
-    """Serves POST /api/meals."""
+    """Serves POST /api/meals and GET /api/health."""
 
     def send_json(self, status: HTTPStatus, payload: object) -> None:
         """Send ``payload`` as a JSON response with ``status``."""
@@ -164,6 +169,18 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(data)))
         self.end_headers()
         self.wfile.write(data)
+
+    def do_GET(self) -> None:
+        if self.path != HEALTH_ENDPOINT:
+            self.send_json(HTTPStatus.NOT_FOUND, {"error": "not found"})
+            return
+        try:
+            with _lock:
+                menu_date = load_menu().get("date")
+        except (OSError, ValueError):
+            self.send_json(HTTPStatus.SERVICE_UNAVAILABLE, {"ok": False, "error": f"{MENU_PATH.name} is missing or invalid"})
+            return
+        self.send_json(HTTPStatus.OK, {"ok": True, "menu_date": menu_date})
 
     def do_POST(self) -> None:
         if self.path != MEALS_ENDPOINT:

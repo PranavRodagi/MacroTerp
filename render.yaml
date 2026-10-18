@@ -1,0 +1,16 @@
+# Render Blueprint for the meal API (server.py). In Render: New → Blueprint → pick this repo.
+# The frontend is hosted on Vercel separately (frontend/app/vercel.json forwards /api/* here).
+services:
+  - type: web
+    name: nourishumd-api          # the URL becomes https://<name>.onrender.com; update vercel.json if it differs
+    runtime: python
+    plan: free
+    branch: main
+    buildCommand: pip install -r requirements.txt
+    startCommand: python server.py
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION       # meal_recommender needs 3.11+ (tomllib)
+        value: 3.13.3
+      - key: PYTHONUNBUFFERED     # show server.py's output in Render's logs right away
+        value: "1"

@@ -11,6 +11,8 @@ cd frontend/app && npm install && npm run dev   # app on :5173, proxies /api →
 
 Accounts use Supabase when `frontend/app/.env.local` has the project URL and publishable key (copy `.env.example`); otherwise the app uses local fakes, so it runs without them. Database setup: run each file in `supabase/migrations/` once, in order, in the Supabase SQL Editor. `account_cli.py` is a temporary terminal client for testing accounts; delete it once it's no longer needed.
 
+**Deploy:** the frontend is on Vercel (project root `frontend/app`, Vite preset) and the API on Render (`render.yaml` Blueprint, free plan, health check `GET /api/health`). `frontend/app/vercel.json` forwards `/api/*` to `https://nourishumd-api.onrender.com` and sends every other path to `index.html`; update that URL if the Render service gets a different one. `server.py` reads `$PORT`. Pushing to `main` redeploys both. Supabase keys go in Vercel's environment variables (they're read at build time). Render's free plan sleeps after ~15 min idle, so the first request then takes 30–60s.
+
 Backend data refresh: `pip install -r requirements.txt`, then `python scraper.py scrape` and `python scraper.py export --date YYYY-MM-DD` (writes `menu_<date>.json`; `server.py` reads `menu.json`, so copy or rename it).
 
 ## Project structure
