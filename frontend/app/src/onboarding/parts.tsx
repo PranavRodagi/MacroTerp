@@ -100,5 +100,3 @@ export function ChoiceChip({ label, selected, onClick }: { label: string; select
     </button>
   );
 }
-
-export const isEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim());

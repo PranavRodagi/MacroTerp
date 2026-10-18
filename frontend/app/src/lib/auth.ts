@@ -10,11 +10,15 @@
 //   export type { User, Session } from "@supabase/supabase-js";
 //
 // Screens only use: signUp, signInWithPassword, signOut, getSession, onAuthStateChange,
-// and read `user.id`, `user.email` and `user.user_metadata.full_name`.
+// and read `user.id`, `user.email` and `user.user_metadata.username`.
+// Errors carry Supabase's `code` (e.g. user_already_exists, invalid_credentials, weak_password);
+// screens show `message` as-is and use `code` only to pick the form field.
 
-export type User = { id: string; email: string; user_metadata: { full_name?: string } };
+import { DEFAULT_AUTH_CONFIG } from "./authConfig";
+
+export type User = { id: string; email: string; user_metadata: { username?: string } };
 export type Session = { user: User };
-export type AuthError = { message: string };
+export type AuthError = { message: string; code?: string };
 type AuthResult = { data: { user: User | null; session: Session | null }; error: AuthError | null };
 type AuthEvent = "SIGNED_IN" | "SIGNED_OUT";
 
@@ -57,19 +61,21 @@ function startSession(user: User): AuthResult {
   return { data: { user, session }, error: null };
 }
 
-const fail = (message: string): AuthResult => ({ data: { user: null, session: null }, error: { message } });
+const fail = (code: string, message: string): AuthResult => ({ data: { user: null, session: null }, error: { code, message } });
 
 export const auth = {
-  async signUp({ email, password, options }: { email: string; password: string; options?: { data?: { full_name?: string } } }) {
+  async signUp({ email, password, options }: { email: string; password: string; options?: { data?: { username?: string } } }) {
     await delay();
     const users = read<Record<string, StoredUser>>(USERS_KEY, {});
     const key = email.trim().toLowerCase();
-    if (users[key]) return fail("User already registered");
-    if (password.length < 6) return fail("Password should be at least 6 characters.");
+    // The fake service enforces the same rule the form uses; the real backend will have its own.
+    const min = DEFAULT_AUTH_CONFIG.rules.passwordMinLength;
+    if (users[key]) return fail("user_already_exists", "User already registered");
+    if (password.length < min) return fail("weak_password", `Password should be at least ${min} characters.`);
     const user: StoredUser = {
       id: crypto.randomUUID(),
       email: key,
-      user_metadata: { full_name: options?.data?.full_name },
+      user_metadata: { username: options?.data?.username },
       passwordHash: await hash(password),
     };
     write(USERS_KEY, { ...users, [key]: user });
@@ -79,7 +85,7 @@ export const auth = {
   async signInWithPassword({ email, password }: { email: string; password: string }) {
     await delay();
     const user = read<Record<string, StoredUser>>(USERS_KEY, {})[email.trim().toLowerCase()];
-    if (!user || user.passwordHash !== (await hash(password))) return fail("Invalid login credentials");
+    if (!user || user.passwordHash !== (await hash(password))) return fail("invalid_credentials", "Invalid login credentials");
     return startSession(publicUser(user));
   },
 

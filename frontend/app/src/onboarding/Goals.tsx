@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { Icon } from "../components/Icon";
 import { RESTRICTIONS } from "../lib/nutrition";
+import { useAuthConfig } from "../lib/authConfig";
 import { ChoiceChip, ProgressHeader } from "./parts";
 
 export type GoalsValues = { calorieGoal: number; proteinGoal: number; restrictions: string[] };
 
 // Step 2 of 2. `onSubmit` saves the profile and resolves to an error message, or null on success.
 export function Goals({ initial, onBack, onSubmit }: { initial: GoalsValues; onBack: () => void; onSubmit: (values: GoalsValues) => Promise<string | null> }) {
+  const { messages } = useAuthConfig();
   const [restrictions, setRestrictions] = useState(initial.restrictions);
   const [calories, setCalories] = useState(initial.calorieGoal);
   const [protein, setProtein] = useState(initial.proteinGoal);
@@ -82,7 +84,7 @@ export function Goals({ initial, onBack, onSubmit }: { initial: GoalsValues; onB
           </div>
         </section>
 
-        {submitted && invalid && <p className="ob-form-error" role="alert">Enter a calorie and protein goal above 0.</p>}
+        {submitted && invalid && <p className="ob-form-error" role="alert">{messages.goalsInvalid}</p>}
         {serverError && <p className="ob-form-error" role="alert">{serverError}</p>}
 
         <button className="ob-primary-button ob-goals-continue" disabled={busy} onClick={submit} type="button">

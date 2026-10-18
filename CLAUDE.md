@@ -52,11 +52,14 @@ Flow (`App.tsx` decides the screen; `lib/router.ts` keeps the URL in sync with t
 | `/meals` | `MainScreen` | signed in and onboarded |
 
 Any other path redirects to the allowed screen. Wiring that isn't in either Figma file:
-- Create account → signs up, creates the profile → goals. Back from goals returns to sign-up with name and email kept. Resubmitting with the same email doesn't create a second account.
+- Create account → signs up, creates the profile → goals. Back from goals returns to sign-up with username and email kept. Resubmitting with the same email doesn't create a second account.
 - Goals → Continue saves `onboarded: true` and the goals/restrictions → `/meals`. New accounts start with 0 intake.
 - Log in → `/meals`, or the goals step if that account never finished onboarding.
 - **Log out** is in the Personalize panel (the user's choice). It returns to Welcome. Personalize edits save to the profile.
-- Validation: name required, valid email, password ≥ 6 (Supabase's default minimum), passwords match, goals > 0. Errors show after the first submit.
+- Sign-up asks for **Username** (not full name), email, password and confirm password. The username is saved as `user_metadata.username` and `profile.username`.
+- **No hard-coded rules or messages.** Every client-side rule (currently: username required, email pattern, **password ≥ 8**, passwords match, goals > 0) and every message lives in `lib/authConfig.ts` (`DEFAULT_AUTH_CONFIG`). Screens read them via `useAuthConfig()`. The backend will own these later: make `loadAuthConfig()` fetch them and merge over the defaults. Don't add literal rules or error strings to screens.
+- Errors from the auth service are shown **as the service sends them** (`error.message`). Only `error.code` is used, through `errorFields` in the config, to pick the field (`user_already_exists` → email, `weak_password` → password, …), and the rest show below the form. Don't match on message text. The fake service uses Supabase's codes and messages.
+- Client-side errors show after the first submit.
 
 **Demo mode is ON by default** (`lib/demo.ts`, `DEMO_MODE`), so the demo needs no typing:
 - Every page load signs out and starts at Welcome, even on `/meals`. Saved accounts and settings are kept.
@@ -67,7 +70,7 @@ Any other path redirects to the allowed screen. Wiring that isn't in either Figm
 
 The real validation and auth paths are untouched, only bypassed behind `DEMO_MODE` checks in `SignUp.tsx`, `LogIn.tsx` and `App.tsx`. Turn it off when the backend is ready: set the constant to `false` or run `VITE_DEMO_MODE=false npm run dev`. Don't remove the real code paths.
 
-**Auth is FAKE for now; a teammate will add Supabase.** `lib/auth.ts` exports `auth` with the same API as `supabase.auth` (`signUp`, `signInWithPassword`, `signOut`, `getSession`, `onAuthStateChange`, `{ data, error }` results). `lib/profile.ts` (`getProfile`, `upsertProfile`) mimics a `profiles` table row `{ id, full_name, onboarded, personalization }`. Both store data in localStorage (`nourish:*` keys) and have comments explaining how to swap in Supabase. Screens must only use these two modules for accounts. Don't read localStorage directly.
+**Auth is FAKE for now; a teammate will add Supabase.** `lib/auth.ts` exports `auth` with the same API as `supabase.auth` (`signUp`, `signInWithPassword`, `signOut`, `getSession`, `onAuthStateChange`, `{ data, error }` results). `lib/profile.ts` (`getProfile`, `upsertProfile`) mimics a `profiles` table row `{ id, username, onboarded, personalization }`. Profiles saved before the rename (`full_name`) still load. Both store data in localStorage (`nourish:*` keys) and have comments explaining how to swap in Supabase. Screens must only use these two modules for accounts. Don't read localStorage directly.
 
 The onboarding prototype is desktop-only. The phone layout (single column under 900px, stacked goal cards under 760px) is ours.
 

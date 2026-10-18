@@ -2,10 +2,13 @@ import { useState, type FormEvent } from "react";
 import { Icon } from "../components/Icon";
 import { Logo } from "../components/Logo";
 import { DEMO_MODE } from "../lib/demo";
-import { BackButton, Field, PasswordField, isEmail, useToggle } from "./parts";
+import { useAuthConfig } from "../lib/authConfig";
+import { BackButton, Field, PasswordField, useToggle } from "./parts";
 
-// `onSubmit` signs in and resolves to an error message, or null on success.
+// `onSubmit` signs in and resolves to the auth service's error message, or null on success.
+// Rules and messages come from lib/authConfig.ts (later: the backend), never hard-coded here.
 export function LogIn({ onBack, onSubmit }: { onBack: () => void; onSubmit: (email: string, password: string) => Promise<string | null> }) {
+  const { rules, messages } = useAuthConfig();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, toggleShowPassword] = useToggle();
@@ -17,8 +20,8 @@ export function LogIn({ onBack, onSubmit }: { onBack: () => void; onSubmit: (ema
   const errors = DEMO_MODE
     ? { email: false as const, password: false as const }
     : {
-        email: !email.trim() ? "Enter your email." : !isEmail(email) && "Enter a valid email address.",
-        password: !password && "Enter your password.",
+        email: !email.trim() ? messages.emailRequired : !new RegExp(rules.emailPattern).test(email.trim()) && messages.emailInvalid,
+        password: !password && messages.passwordRequired,
       };
 
   const submit = async (e: FormEvent) => {

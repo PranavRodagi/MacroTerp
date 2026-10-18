@@ -17,7 +17,7 @@ import type { Personalization } from "./nutrition";
 export const DEMO_MODE = import.meta.env.VITE_DEMO_MODE !== "false";
 
 export const DEMO_PASSWORD = "demo-password";
-export const DEMO_ACCOUNT = { name: "Demo Student", email: "demo@nourishumd.demo" };
+export const DEMO_ACCOUNT = { username: "demo-student", email: "demo@nourishumd.demo" };
 
 // Sample "intake so far" for demo accounts, so Daily progress isn't empty
 // (roughly breakfast eaten; these were the main-screen design's sample values).
