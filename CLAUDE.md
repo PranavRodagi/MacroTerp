@@ -27,9 +27,10 @@ supabase/migrations/       # database schema: profiles table, row-level security
 frontend/
   app/                     # React + Vite + TS app (from two Figma Make prototypes)
     src/App.tsx            # top-level flow: picks onboarding screen vs main screen from session + profile
-    src/MainScreen.tsx     # main screen: period picker, hall tabs, plate, progress, Personalize
+    src/MainScreen.tsx     # main screen: period picker, hall tabs, Mark consumed, plate, progress, panels
     src/onboarding/        # Welcome, SignUp (step 1), LogIn, Goals (step 2), parts.tsx, onboarding.css
-    src/components/        # Icon, Logo, PlateView, DailyProgress, MealNutritionChart, PreferencesPanel
+    src/components/        # Icon, Logo, PlateView, DailyProgress, MealNutritionChart, SidePanel,
+                           # UserSettingsPanel, AdjustIntakePanel, NumberField
     src/lib/               # api.ts (meals fetch), auth.ts + profile.ts (Supabase, or fakeAuth.ts + fakeProfile.ts
                            # without it), supabase.ts (client), authConfig.ts, demo.ts, router.ts,
                            # nutrition.ts (nutrients, goals, restrictions, defaults), types.ts
@@ -60,7 +61,7 @@ Any other path redirects to the allowed screen. Wiring that isn't in either Figm
 - Create account → checks the username is free (`isUsernameAvailable`), signs up, creates the profile → goals. If Supabase's "Confirm email" is on, it stops with the `confirmEmail` message instead; the user logs in after confirming. Back from goals returns to sign-up with username and email kept. Resubmitting with the same email doesn't create a second account.
 - Goals → Continue saves `onboarded: true` and the goals/restrictions → `/meals`. New accounts start with 0 intake.
 - Log in → `/meals`, or the goals step if that account never finished onboarding.
-- **Log out** is in the Personalize panel (the user's choice). It returns to Welcome. Personalize edits save to the profile.
+- **Log out** is in the User settings panel. It returns to Welcome (onboarding).
 - Sign-up asks for **Username** (not full name), email, password and confirm password. The username is saved as `user_metadata.username` and `profile.username`.
 - **No hard-coded rules or messages.** Every client-side rule (currently: username 3–30 letters/digits/underscores, email pattern, **password ≥ 8**, passwords match, calorie goal 1–10000, protein goal 1–1000) and every message lives in `lib/authConfig.ts` (`DEFAULT_AUTH_CONFIG`). Screens read them via `useAuthConfig()`. The rules mirror the database's CHECK constraints in `supabase/migrations/`; change both together, or the database rejects what the form accepts. The backend will own these later: make `loadAuthConfig()` fetch them and merge over the defaults. Don't add literal rules or error strings to screens.
 - Errors from the auth service are shown **as the service sends them** (`error.message`). Only `error.code` is used, through `errorFields` in the config, to pick the field (`user_already_exists` → email, `weak_password` → password, …), and the rest show below the form. Don't match on message text. The fake service uses Supabase's codes and messages. "Username taken" is the one app-side check, with its own config message.
@@ -86,7 +87,11 @@ The onboarding prototype is desktop-only. The phone layout (single column under 
 3. The response is `generate_meals()` output: `{ source_menu_date, meals: [{ dining_hall, meal_option, meal_name, items[], meal_macros_total }] }`. Items have `name`, `generic_name`, `serving_g` and `macros`, with no `servings` (the plate defaults to 1).
 4. Every hall has **exactly two** meals (`meal_option` 1 and 2, `MEALS_PER_HALL` in the recommender, `OPTIONS` in `App.tsx`). The design's round arrows and two dots switch between them without looping. On option 1 the left arrow is disabled, and on option 2 the right one is (`.arrow-button:disabled` is greyed out). A meal with `items: []` means nothing fit: the arrow and dot that lead to it are disabled too.
 
-5. **Daily progress** bars show intake so far (solid, from Personalize) plus the meal on screen as a lighter segment, with labels like "720 + 590 / 2,000". The preview follows period, hall and option changes and isn't saved anywhere. Bars cap at 100%, with no special over-goal styling yet.
+5. **Daily progress** bars show intake so far (solid, from the profile's `consumed`) plus the meal on screen as a lighter segment, with labels like "720 + 590 / 2,000". The preview follows period, hall and option changes and isn't saved anywhere. Bars cap at 100%, with no special over-goal styling yet.
+6. The header has two buttons that open side panels (`SidePanel`), replacing the old single "Personalize" panel:
+   - **Adjust intake** (sliders icon, `AdjustIntakePanel`): the 7 "intake so far" fields and an **Update today's intake** button.
+   - **User settings** (`user` icon, `UserSettingsPanel`): daily goals (calories, protein), dietary restrictions, the allergen note, **Save settings** and **Log out**.
+7. **Mark consumed ⇄ Consumed** (card header, right of the hall tabs) is a toggle. Tapping it adds the shown meal's `meal_macros_total` to `consumed` and saves; tapping again subtracts the same amount. There's no toast or undo; a toast only appears for save errors. Marked meals are tracked per period/hall/option in `MainScreen` state (session only, lost on reload). So the meal doesn't swap when you mark it, the meals request leaves out meals marked in the current period (`fetchInput`), while other periods still plan around them. A consumed meal shows no preview segment on Daily progress. Values are rounded to 0.1 on both sides so the request doesn't change by rounding noise. Every save goes through `onSavePersonalization` (`App.tsx`), which updates the screen right away and rolls back if the save fails.
 
 Mappings to keep in sync:
 - Hall names in `MainScreen.tsx` `HALLS` must match `meal_recommender.HALL_NAMES` ("Yahentamitsi Dining Hall" is shown as "Yahentamitsi").
@@ -131,7 +136,7 @@ Rules:
 ## Components
 
 - Function components with props typed inline. Shared types live in `src/lib/types.ts` (API shapes) and `nutrition.ts` (settings).
-- Personalize number fields (`NumberField` in `PreferencesPanel.tsx`) are `type="text" inputMode="decimal"`, not `type="number"`. They keep the typed text while editing, select all on focus, strip leading zeros and non-numeric characters, and treat empty as 0. Use the same approach for any new numeric input.
+- Panel number fields (`components/NumberField.tsx`) are `type="text" inputMode="decimal"`, not `type="number"`. They keep the typed text while editing, select all on focus, strip leading zeros and non-numeric characters, and treat empty as 0. Use the same approach for any new numeric input.
 - Use native `<button type="button">` with `aria-pressed` for toggles (tabs, chips, periods) and `aria-label` on icon-only buttons.
 - **`PlateView`** wraps the vanilla plate component: it imports `food-assets.js`/`plate-visualizer.js` for their `window.*` side effects, rewrites `FOOD_ASSETS[*].src` to Vite-built URLs (`import.meta.glob`), and mounts with `assetBase: ""`. Change plate behavior in `frontend/plate-visualizer/`, not in the wrapper. That folder must keep working standalone (`index.html`).
 - The plate re-mounts per meal (`key` on `.visualizer-shell`) to replay the `plate-enter` animation. It switches itself to numbered pins plus a legend below 620px container width.
@@ -142,12 +147,14 @@ Rules:
 - Plain global CSS with descriptive kebab-case classes, kept from the Make prototype (`.meal-card`, `.hall-tab.active`, `.progress-fill.pink`). Plate classes use the `.pv-` prefix. State uses `.active`/`.selected` classes and `aria-*`.
 - Onboarding classes use the **`.ob-` prefix** (`onboarding/onboarding.css`), because both designs define `.primary-button`/`.choice-chip` with different looks. Main-screen page rules are scoped to `.app-shell` (e.g. `.app-shell > main`) so they don't leak into onboarding. Keep new global element selectors out of `styles.css`.
 - The onboarding prototype is Tailwind-only. Its utilities were translated into the `.ob-*` rules, and where a Tailwind utility lost to the prototype's own CSS (e.g. the goals panel's `max-w-[760px]`, the Continue button's `ml-auto`), we match what it actually renders.
-- Responsive: one `@media (max-width: 760px)` block at the end of `styles.css`, plus `clamp()` and grid. On mobile the design hides Personalize. We keep it as an icon-only button so it stays reachable.
+- Responsive: one `@media (max-width: 760px)` block at the end of `styles.css`, plus `clamp()` and grid. On mobile the header buttons (Adjust intake, User settings) are icon-only, and Mark consumed sits beside the meal title.
 - Loading: `.visualizer-area.is-loading` dims the plate, and `aria-busy` is set on `.meal-card`.
 
 ## Assets & icons
 
-- **Food images:** `frontend/plate-visualizer/assets/food/<generic-name>.webp` (transparent WebP, ≤900px, made by `frontend/tools/process_food_images.py`). Each item's `generic_name` (from `food_categories.toml`) is normalized to kebab-case, so "plant-based chicken" becomes `plant-based-chicken`, and looked up in `food-assets.js`. Missing images render a placeholder disc, which is expected for now. The user is supplying images for the remaining generic names. To add one: process it, then add an entry to `food-assets.js` (`src`, `scale`, `role`, `kind`, `repeat`, `rotate`).
+- **Food images:** `frontend/plate-visualizer/assets/food/<generic-name>.webp` (transparent WebP, ≤900px). Each item's `generic_name` (from `food_categories.toml`) is normalized to kebab-case ("mac and cheese" → `mac-and-cheese`) and looked up in `food-assets.js`. `plant-based-<meat>` entries reuse the meat's image, and `spaghetti` is an alias of `pasta` for the standalone demo. Names with no entry render a placeholder disc. Currently 49 of 54 TOML names have images; missing: noodles, fish, plant-based fish, lentils, beans.
+- **Adding images:** the teammate adds transparent PNG cut-outs (any name) to `assets/food/`. Run `npm run food-images` in `frontend/app` (`frontend/tools/process_food_pngs.mjs`, uses `sharp`, a devDependency). It trims, pads 8px, fits 900px and writes `<generic-name>.webp`; map PNG names that don't match the TOML in its `RENAMES`. Then add a `food-assets.js` entry (`src`, `scale`, `role`, `kind`, `repeat`, `rotate`) and check it on a plate. Only `.webp` files are bundled, so the source PNGs (1–3 MB each) stay in the folder but never ship. `frontend/tools/process_food_images.py` (Python: pillow/numpy/scipy, not installed here) is for messy sources: fake checkerboard backgrounds and sprite sheets.
+- **After a TOML change, restart `python server.py`.** It caches meal results per request, so it keeps serving meals built with the old categories.
 - The Make prototype's `public/plates/*.png` are static screenshots of the plate component. **Don't use them**, use `PlateView`.
 - **Icons:** inline stroke SVGs in `src/components/Icon.tsx` (24×24 viewBox, `currentColor`, stroke 1.8 unless a path overrides it), named in kebab-case (`arrow-left`, `arrow-right`, `sliders`, `leaf`, `x`, `check`, `eye`, `eye-off`). Add new icons there. Don't add an icon library.
 - **Onboarding images:** `src/assets/onboarding/food-reference.png` and `foliage-garland.png`, imported in `Welcome.tsx`, used as-is from the Make file. The foliage PNG has no transparency and relies on `mix-blend-mode: multiply`.

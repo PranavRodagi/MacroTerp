@@ -19,8 +19,11 @@ Mostly white. Pastel pink (primary), sage (secondary), blue (tertiary): CSS vari
 An unknown `generic_name` shows a beige placeholder disc instead of breaking.
 
 ## Adding a food image
-1. Add the raw image to `SINGLES` (or `SHEETS`) in `../tools/process_food_images.py`.
-2. Run `python ../tools/process_food_images.py <raw_dir> assets/food` (needs `pillow numpy scipy`).
+Transparent PNG cut-out (the usual case):
+1. Put the PNG in `assets/food/`. If its name doesn't match the `generic_name` in `food_categories.toml`, add it to `RENAMES` in `../tools/process_food_pngs.mjs`.
+2. In `../app`, run `npm run food-images` (writes `assets/food/<generic-name>.webp`).
 3. Add an entry to `food-assets.js` and adjust `scale` until it looks right next to the others.
+
+Fake checkerboard background or a sprite sheet: use `../tools/process_food_images.py` instead (add the file to `SINGLES` or `SHEETS`, run `python ../tools/process_food_images.py <raw_dir> assets/food`; needs `pillow numpy scipy`).
 
 Below 620px wide, side labels become numbered pins with a legend underneath.
