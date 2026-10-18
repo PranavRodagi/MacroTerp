@@ -10,14 +10,17 @@
 //     (applied on sign-up, demo log-in and profile load; saved once you edit Personalize).
 // All real validation and auth code is still in place; it's only bypassed.
 //
-// Turn off once the Supabase backend is hooked up: set DEMO_MODE to false here,
-// or run with VITE_DEMO_MODE=false (e.g. `VITE_DEMO_MODE=false npm run dev`).
+// On by default only when Supabase isn't configured (no frontend/app/.env.local), so
+// real accounts aren't signed out or filled with demo sign-ups. Override either way
+// with VITE_DEMO_MODE=true or VITE_DEMO_MODE=false (e.g. `VITE_DEMO_MODE=true npm run dev`).
 import type { Personalization } from "./nutrition";
+import { supabase } from "./supabase";
 
-export const DEMO_MODE = import.meta.env.VITE_DEMO_MODE !== "false";
+const demoSetting = import.meta.env.VITE_DEMO_MODE;
+export const DEMO_MODE = demoSetting ? demoSetting !== "false" : supabase === null;
 
 export const DEMO_PASSWORD = "demo-password";
-export const DEMO_ACCOUNT = { username: "demo-student", email: "demo@nourishumd.demo" };
+export const DEMO_ACCOUNT = { username: "demo_student", email: "demo@nourishumd.demo" };
 
 // Sample "intake so far" for demo accounts, so Daily progress isn't empty
 // (roughly breakfast eaten; these were the main-screen design's sample values).
@@ -30,3 +33,5 @@ export function withDemoIntake<P extends { personalization: Personalization }>(p
 
 // A fresh address for each blank sign-up, so demo sign-ups never collide.
 export const demoSignUpEmail = () => `demo-${Date.now().toString(36)}@nourishumd.demo`;
+// Likewise a fresh username, since usernames must be unique.
+export const demoSignUpUsername = () => `demo_${Date.now().toString(36)}`;

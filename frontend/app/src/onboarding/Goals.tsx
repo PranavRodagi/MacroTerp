@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { Icon } from "../components/Icon";
 import { RESTRICTIONS } from "../lib/nutrition";
-import { useAuthConfig } from "../lib/authConfig";
+import { formatMessage, useAuthConfig } from "../lib/authConfig";
 import { ChoiceChip, ProgressHeader } from "./parts";
 
 export type GoalsValues = { calorieGoal: number; proteinGoal: number; restrictions: string[] };
 
 // Step 2 of 2. `onSubmit` saves the profile and resolves to an error message, or null on success.
 export function Goals({ initial, onBack, onSubmit }: { initial: GoalsValues; onBack: () => void; onSubmit: (values: GoalsValues) => Promise<string | null> }) {
-  const { messages } = useAuthConfig();
+  const { rules, messages } = useAuthConfig();
   const [restrictions, setRestrictions] = useState(initial.restrictions);
   const [calories, setCalories] = useState(initial.calorieGoal);
   const [protein, setProtein] = useState(initial.proteinGoal);
@@ -18,7 +18,10 @@ export function Goals({ initial, onBack, onSubmit }: { initial: GoalsValues; onB
 
   const toggle = (value: string) => setRestrictions((r) => (r.includes(value) ? r.filter((x) => x !== value) : [...r, value]));
   const digits = (raw: string) => Number(raw.replace(/\D/g, "").slice(0, 5)) || 0;
-  const invalid = calories <= 0 || protein <= 0;
+  const inRange = (value: number, { min, max }: { min: number; max: number }) => value >= min && value <= max;
+  const caloriesInvalid = !inRange(calories, rules.calorieGoal);
+  const proteinInvalid = !inRange(protein, rules.proteinGoal);
+  const invalid = caloriesInvalid || proteinInvalid;
 
   const submit = async () => {
     setSubmitted(true);
@@ -54,7 +57,7 @@ export function Goals({ initial, onBack, onSubmit }: { initial: GoalsValues; onB
             </label>
             <div className="ob-goal-row">
               <input
-                aria-invalid={submitted && calories <= 0}
+                aria-invalid={submitted && caloriesInvalid}
                 className="ob-goal-input"
                 id="calorie-goal"
                 inputMode="numeric"
@@ -71,7 +74,7 @@ export function Goals({ initial, onBack, onSubmit }: { initial: GoalsValues; onB
             </label>
             <div className="ob-goal-row">
               <input
-                aria-invalid={submitted && protein <= 0}
+                aria-invalid={submitted && proteinInvalid}
                 className="ob-goal-input"
                 id="protein-goal"
                 inputMode="numeric"
@@ -84,7 +87,16 @@ export function Goals({ initial, onBack, onSubmit }: { initial: GoalsValues; onB
           </div>
         </section>
 
-        {submitted && invalid && <p className="ob-form-error" role="alert">{messages.goalsInvalid}</p>}
+        {submitted && invalid && (
+          <p className="ob-form-error" role="alert">
+            {formatMessage(messages.goalsInvalid, {
+              calorieMin: rules.calorieGoal.min,
+              calorieMax: rules.calorieGoal.max,
+              proteinMin: rules.proteinGoal.min,
+              proteinMax: rules.proteinGoal.max,
+            })}
+          </p>
+        )}
         {serverError && <p className="ob-form-error" role="alert">{serverError}</p>}
 
         <button className="ob-primary-button ob-goals-continue" disabled={busy} onClick={submit} type="button">

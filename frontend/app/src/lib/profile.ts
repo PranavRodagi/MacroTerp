@@ -1,15 +1,11 @@
-// FAKE profile storage for now (localStorage, one entry per user id).
+// User profiles: the Supabase `profiles` table when Supabase is configured (schema in
+// supabase/migrations/), otherwise localStorage (lib/fakeProfile.ts).
 //
-// Shaped like a Supabase `profiles` table row keyed by the auth user's id. To switch,
-// replace the two functions with:
-//
-//   supabase.from("profiles").select("*").eq("id", userId).maybeSingle()
-//   supabase.from("profiles").upsert(profile)
-//
-// Suggested table: id uuid primary key references auth.users, username text unique,
-// onboarded boolean, personalization jsonb, plus a row-level-security policy
-// so users can only read and write their own row.
-import { DEFAULT_PERSONALIZATION, type Personalization } from "./nutrition";
+// The app works with `Profile`; the table stores the same data as validated columns,
+// and toRow()/toProfile() convert between the two.
+import { DEFAULT_PERSONALIZATION, type Personalization, type Totals } from "./nutrition";
+import { fakeProfiles } from "./fakeProfile";
+import { supabase } from "./supabase";
 
 export type Profile = {
   id: string;
@@ -18,35 +14,73 @@ export type Profile = {
   personalization: Personalization;
 };
 
-const key = (userId: string) => `nourish:fake-profile:${userId}`;
-const delay = () => new Promise((r) => setTimeout(r, 120));
+type StoreError = { message: string } | null;
 
-export async function getProfile(userId: string): Promise<{ data: Profile | null; error: { message: string } | null }> {
-  await delay();
-  try {
-    const saved = JSON.parse(localStorage.getItem(key(userId)) || "null") as (Profile & { full_name?: string | null }) | null;
-    if (!saved) return { data: null, error: null };
-    const { full_name, ...rest } = saved; // profiles saved before the rename used full_name
-    // Fill in any fields added since this profile was saved.
-    const p = saved.personalization ?? DEFAULT_PERSONALIZATION;
-    return {
-      data: { ...rest, username: rest.username ?? full_name ?? null, personalization: { ...DEFAULT_PERSONALIZATION, ...p, consumed: { ...DEFAULT_PERSONALIZATION.consumed, ...p.consumed } } },
-      error: null,
-    };
-  } catch {
-    return { data: null, error: { message: "Couldn't read your profile." } };
-  }
-}
+export type ProfileStore = {
+  getProfile(userId: string): Promise<{ data: Profile | null; error: StoreError }>;
+  upsertProfile(profile: Profile): Promise<{ error: StoreError }>;
+  /** Whether no account uses `username` yet (ignoring case). */
+  isUsernameAvailable(username: string): Promise<{ data: boolean | null; error: StoreError }>;
+};
 
-export async function upsertProfile(profile: Profile): Promise<{ error: { message: string } | null }> {
-  await delay();
-  try {
-    localStorage.setItem(key(profile.id), JSON.stringify(profile));
-    return { error: null };
-  } catch {
-    return { error: { message: "Couldn't save your profile." } };
-  }
-}
+// ---------------------------------------------------------------- Supabase
+
+// One row of public.profiles (only the columns the app reads or writes).
+type ProfileRow = {
+  id: string;
+  username: string | null;
+  onboarded: boolean;
+  calorie_goal: number | null;
+  protein_goal_g: number | null;
+  dietary_restrictions: string[];
+  consumed: Partial<Totals>;
+};
+
+const COLUMNS = "id, username, onboarded, calorie_goal, protein_goal_g, dietary_restrictions, consumed";
+
+const toProfile = (row: ProfileRow): Profile => ({
+  id: row.id,
+  username: row.username,
+  onboarded: row.onboarded,
+  personalization: {
+    calorieGoal: row.calorie_goal ?? DEFAULT_PERSONALIZATION.calorieGoal,
+    proteinGoal: row.protein_goal_g ?? DEFAULT_PERSONALIZATION.proteinGoal,
+    restrictions: row.dietary_restrictions,
+    consumed: { ...DEFAULT_PERSONALIZATION.consumed, ...row.consumed },
+  },
+});
+
+const toRow = ({ id, username, onboarded, personalization: p }: Profile): ProfileRow => ({
+  id,
+  username,
+  onboarded,
+  calorie_goal: p.calorieGoal,
+  protein_goal_g: p.proteinGoal,
+  dietary_restrictions: p.restrictions,
+  consumed: p.consumed,
+});
+
+export const supabaseProfiles = (client: NonNullable<typeof supabase>): ProfileStore => ({
+  async getProfile(userId) {
+    const { data, error } = await client.from("profiles").select(COLUMNS).eq("id", userId).maybeSingle();
+    return { data: data && toProfile(data as ProfileRow), error };
+  },
+
+  async upsertProfile(profile) {
+    const { error } = await client.from("profiles").upsert(toRow(profile));
+    return { error };
+  },
+
+  async isUsernameAvailable(username) {
+    // A database function, since row-level security hides other users' profiles.
+    const { data, error } = await client.rpc("username_available", { candidate: username.trim() });
+    return { data: typeof data === "boolean" ? data : null, error };
+  },
+});
+
+const store: ProfileStore = supabase ? supabaseProfiles(supabase) : fakeProfiles;
+
+export const { getProfile, upsertProfile, isUsernameAvailable } = store;
 
 export const newProfile = (userId: string, username: string | null): Profile => ({
   id: userId,

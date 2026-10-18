@@ -7,10 +7,10 @@ import { SignUp, type SignUpValues, type SubmitError } from "./onboarding/SignUp
 import { LogIn } from "./onboarding/LogIn";
 import { Goals, type GoalsValues } from "./onboarding/Goals";
 import { auth, type Session } from "./lib/auth";
-import { getProfile, newProfile, upsertProfile, type Profile } from "./lib/profile";
+import { getProfile, isUsernameAvailable, newProfile, upsertProfile, type Profile } from "./lib/profile";
 import { ROUTES, usePath, type Screen } from "./lib/router";
 import type { Personalization } from "./lib/nutrition";
-import { DEMO_ACCOUNT, DEMO_MODE, DEMO_PASSWORD, demoSignUpEmail, withDemoIntake } from "./lib/demo";
+import { DEMO_ACCOUNT, DEMO_MODE, DEMO_PASSWORD, demoSignUpEmail, demoSignUpUsername, withDemoIntake } from "./lib/demo";
 import { useAuthConfig } from "./lib/authConfig";
 import "./onboarding/onboarding.css";
 
@@ -63,14 +63,21 @@ export default function App() {
     setDraft({ username, email });
     if (DEMO_MODE) {
       // Fill blanks so the real sign-up path below still runs (see lib/demo.ts).
-      username ||= DEMO_ACCOUNT.username;
+      username ||= profile?.username ?? demoSignUpUsername();
       email ||= session?.user.email ?? demoSignUpEmail();
       password ||= DEMO_PASSWORD;
     }
-    if (session && session.user.email === email.toLowerCase()) {
+    const sameAccount = session?.user.email === email.toLowerCase(); // came Back from goals, same email
+    // Usernames are unique; check before creating anything. (The same account keeping its own is fine.)
+    if (!(sameAccount && profile?.username?.toLowerCase() === username.toLowerCase())) {
+      const { data: available } = await isUsernameAvailable(username);
+      if (available === false) return { field: "username", message: messages.usernameTaken };
+    }
+    if (sameAccount) {
       // Came Back from goals without changing the email: the account already exists.
       const updated = { ...profile!, username };
-      await upsertProfile(updated);
+      const { error: saveError } = await upsertProfile(updated);
+      if (saveError) return { message: saveError.message || messages.saveFailed };
       setProfile(updated);
       navigate(ROUTES.goals);
       return null;
@@ -81,6 +88,8 @@ export default function App() {
       // Show the service's own message; its code only decides which field it goes under.
       return { field: error?.code ? errorFields[error.code] : undefined, message: error?.message || messages.signUpFailed };
     }
+    // Supabase with "Confirm email" on: the account exists but can't sign in until confirmed.
+    if (!data.session) return { message: messages.confirmEmail };
     const created = withDemoIntake(newProfile(data.user.id, username));
     const { error: saveError } = await upsertProfile(created);
     if (saveError) return { message: saveError.message || messages.saveFailed };

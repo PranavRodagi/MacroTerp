@@ -9,6 +9,8 @@ python server.py                       # meal API on :8000 (stdlib only; reads m
 cd frontend/app && npm install && npm run dev   # app on :5173, proxies /api → :8000
 ```
 
+Accounts use Supabase when `frontend/app/.env.local` has the project URL and publishable key (copy `.env.example`); otherwise the app uses local fakes, so it runs without them. Database setup: run each file in `supabase/migrations/` once, in order, in the Supabase SQL Editor. `account_cli.py` is a temporary terminal client for testing accounts; delete it once it's no longer needed.
+
 Backend data refresh: `pip install -r requirements.txt`, then `python scraper.py scrape` and `python scraper.py export --date YYYY-MM-DD` (writes `menu_<date>.json`; `server.py` reads `menu.json`, so copy or rename it).
 
 ## Project structure
@@ -20,13 +22,16 @@ meal_recommender_runner.py # (backend teammate) CLI example that writes meals.js
 food_categories.toml       # menu item name → generic_name rules (drives plate images)
 menu.json / meals.json     # sample scraper output / sample recommender output
 server.py                  # JSON API wrapping meal_recommender for the frontend (POST /api/meals)
+account_cli.py             # TEMPORARY terminal client for Supabase accounts (register, log in, preferences)
+supabase/migrations/       # database schema: profiles table, row-level security, sign-up trigger (run in order)
 frontend/
   app/                     # React + Vite + TS app (from two Figma Make prototypes)
     src/App.tsx            # top-level flow: picks onboarding screen vs main screen from session + profile
     src/MainScreen.tsx     # main screen: period picker, hall tabs, plate, progress, Personalize
     src/onboarding/        # Welcome, SignUp (step 1), LogIn, Goals (step 2), parts.tsx, onboarding.css
     src/components/        # Icon, Logo, PlateView, DailyProgress, MealNutritionChart, PreferencesPanel
-    src/lib/               # api.ts (meals fetch), auth.ts + profile.ts (FAKE, Supabase-shaped), router.ts,
+    src/lib/               # api.ts (meals fetch), auth.ts + profile.ts (Supabase, or fakeAuth.ts + fakeProfile.ts
+                           # without it), supabase.ts (client), authConfig.ts, demo.ts, router.ts,
                            # nutrition.ts (nutrients, goals, restrictions, defaults), types.ts
     src/assets/onboarding/ # welcome-screen images from the onboarding Make file
     src/styles.css         # main screen styles + all app design tokens
@@ -52,25 +57,25 @@ Flow (`App.tsx` decides the screen; `lib/router.ts` keeps the URL in sync with t
 | `/meals` | `MainScreen` | signed in and onboarded |
 
 Any other path redirects to the allowed screen. Wiring that isn't in either Figma file:
-- Create account → signs up, creates the profile → goals. Back from goals returns to sign-up with username and email kept. Resubmitting with the same email doesn't create a second account.
+- Create account → checks the username is free (`isUsernameAvailable`), signs up, creates the profile → goals. If Supabase's "Confirm email" is on, it stops with the `confirmEmail` message instead; the user logs in after confirming. Back from goals returns to sign-up with username and email kept. Resubmitting with the same email doesn't create a second account.
 - Goals → Continue saves `onboarded: true` and the goals/restrictions → `/meals`. New accounts start with 0 intake.
 - Log in → `/meals`, or the goals step if that account never finished onboarding.
 - **Log out** is in the Personalize panel (the user's choice). It returns to Welcome. Personalize edits save to the profile.
 - Sign-up asks for **Username** (not full name), email, password and confirm password. The username is saved as `user_metadata.username` and `profile.username`.
-- **No hard-coded rules or messages.** Every client-side rule (currently: username required, email pattern, **password ≥ 8**, passwords match, goals > 0) and every message lives in `lib/authConfig.ts` (`DEFAULT_AUTH_CONFIG`). Screens read them via `useAuthConfig()`. The backend will own these later: make `loadAuthConfig()` fetch them and merge over the defaults. Don't add literal rules or error strings to screens.
-- Errors from the auth service are shown **as the service sends them** (`error.message`). Only `error.code` is used, through `errorFields` in the config, to pick the field (`user_already_exists` → email, `weak_password` → password, …), and the rest show below the form. Don't match on message text. The fake service uses Supabase's codes and messages.
+- **No hard-coded rules or messages.** Every client-side rule (currently: username 3–30 letters/digits/underscores, email pattern, **password ≥ 8**, passwords match, calorie goal 1–10000, protein goal 1–1000) and every message lives in `lib/authConfig.ts` (`DEFAULT_AUTH_CONFIG`). Screens read them via `useAuthConfig()`. The rules mirror the database's CHECK constraints in `supabase/migrations/`; change both together, or the database rejects what the form accepts. The backend will own these later: make `loadAuthConfig()` fetch them and merge over the defaults. Don't add literal rules or error strings to screens.
+- Errors from the auth service are shown **as the service sends them** (`error.message`). Only `error.code` is used, through `errorFields` in the config, to pick the field (`user_already_exists` → email, `weak_password` → password, …), and the rest show below the form. Don't match on message text. The fake service uses Supabase's codes and messages. "Username taken" is the one app-side check, with its own config message.
 - Client-side errors show after the first submit.
 
-**Demo mode is ON by default** (`lib/demo.ts`, `DEMO_MODE`), so the demo needs no typing:
+**Demo mode is ON by default when Supabase isn't configured** (`lib/demo.ts`, `DEMO_MODE`), so the demo needs no typing. With Supabase configured it's off by default, so real accounts aren't signed out or filled with demo sign-ups. Force it either way with `VITE_DEMO_MODE=true` or `false`. While on:
 - Every page load signs out and starts at Welcome, even on `/meals`. Saved accounts and settings are kept.
-- Sign up skips validation, and blank fields get demo values (a fresh `demo-…@nourishumd.demo` email each time).
+- Sign up skips validation, and blank fields get demo values (a fresh `demo-…@nourishumd.demo` email and `demo_…` username each time).
 - Log in with blank or wrong credentials opens a shared, already-onboarded demo account and goes straight to `/meals`.
 - Correct credentials still log into that account.
 - Any account whose "intake so far" is all zero shows sample intake (`DEMO_INTAKE`: 720 cal, 42 g protein, …) so Daily progress isn't empty. It's applied on sign-up, demo log-in and profile load (`withDemoIntake`). With demo mode off, new accounts start at 0.
 
-The real validation and auth paths are untouched, only bypassed behind `DEMO_MODE` checks in `SignUp.tsx`, `LogIn.tsx` and `App.tsx`. Turn it off when the backend is ready: set the constant to `false` or run `VITE_DEMO_MODE=false npm run dev`. Don't remove the real code paths.
+The real validation and auth paths are untouched, only bypassed behind `DEMO_MODE` checks in `SignUp.tsx`, `LogIn.tsx` and `App.tsx`. Don't remove the real code paths.
 
-**Auth is FAKE for now; a teammate will add Supabase.** `lib/auth.ts` exports `auth` with the same API as `supabase.auth` (`signUp`, `signInWithPassword`, `signOut`, `getSession`, `onAuthStateChange`, `{ data, error }` results). `lib/profile.ts` (`getProfile`, `upsertProfile`) mimics a `profiles` table row `{ id, username, onboarded, personalization }`. Profiles saved before the rename (`full_name`) still load. Both store data in localStorage (`nourish:*` keys) and have comments explaining how to swap in Supabase. Screens must only use these two modules for accounts. Don't read localStorage directly.
+**Accounts: Supabase, with local fakes as a fallback.** `lib/auth.ts` exports `auth` (an `AuthService`: `signUp`, `signInWithPassword`, `signOut`, `getSession`, `onAuthStateChange`, `{ data, error }` results, same API as `supabase.auth`). `lib/profile.ts` exports `getProfile`, `upsertProfile` and `isUsernameAvailable` (a `ProfileStore`) for `Profile = { id, username, onboarded, personalization }`. When `lib/supabase.ts` has a client, they use Supabase Auth and the `profiles` table: the table stores the profile as validated columns (`calorie_goal`, `protein_goal_g`, `dietary_restrictions`, `consumed` jsonb, …) and `profile.ts` converts with `toRow`/`toProfile`. Without one, they use `fakeAuth.ts`/`fakeProfile.ts` (localStorage, `nourish:*` keys; profiles saved before the `full_name` rename still load). Supabase passwords are bcrypt-hashed by Supabase Auth; row-level security limits each user to their own row; a trigger creates the profile from the sign-up's `user_metadata.username`. Screens must only use `auth.ts` and `profile.ts` for accounts. Don't read localStorage or call Supabase directly.
 
 The onboarding prototype is desktop-only. The phone layout (single column under 900px, stacked goal cards under 760px) is ours.
 

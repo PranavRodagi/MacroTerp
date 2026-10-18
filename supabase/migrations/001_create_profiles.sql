@@ -1,4 +1,5 @@
--- Meal Maker accounts: run once in the Supabase dashboard (SQL Editor -> New query -> Run).
+-- Migration 001: accounts. Run each migration in this folder once, in order, in the
+-- Supabase dashboard (SQL Editor -> New query -> paste -> Run).
 --
 -- Supabase Auth (the built-in auth.users table) stores emails and bcrypt-hashed
 -- passwords. This file adds one row per user in public.profiles holding their

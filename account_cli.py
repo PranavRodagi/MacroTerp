@@ -3,7 +3,7 @@ Temporary terminal client for testing Meal Maker accounts on Supabase.
 
 Registers, logs in and out, and reads or updates a user's dietary restrictions,
 calorie goal, and protein goal, using the same Supabase project, tables, and
-rules as the frontend (frontend/app/src/lib/account.ts). Nothing imports this
+rules as the frontend (frontend/app/src/lib/authConfig.ts). Nothing imports this
 file; delete it once the login page exists.
 
 Setup: fill in frontend/app/.env.local (copy .env.example), or set the
@@ -31,14 +31,14 @@ from meal_recommender import DIETARY_OPTIONS
 ENV_FILE = Path(__file__).with_name("frontend") / "app" / ".env.local"
 REQUEST_TIMEOUT_S = 15
 
-# Same rules as account.ts and the CHECK constraints in supabase/schema.sql.
+# Same rules as the frontend (lib/authConfig.ts); the database (supabase/migrations/) enforces them too.
 USERNAME_PATTERN = re.compile(r"^[A-Za-z0-9_]{3,30}$")
 EMAIL_PATTERN = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 PASSWORD_MIN_LENGTH = 8
 PASSWORD_MAX_BYTES = 72
-CALORIE_GOAL_RANGE = (1000, 6000)
-PROTEIN_GOAL_RANGE = (0, 400)
-PROFILE_COLUMNS = "username,calorie_goal,protein_goal_g,dietary_restrictions"
+CALORIE_GOAL_RANGE = (1, 10000)
+PROTEIN_GOAL_RANGE = (1, 1000)
+PROFILE_COLUMNS = "username,onboarded,calorie_goal,protein_goal_g,dietary_restrictions"
 
 
 class ApiError(Exception):
@@ -135,9 +135,10 @@ def error_message(status: int, text: str) -> str:
         "23505": "That username is taken.",
         "23514": "One of the values is outside the allowed range.",
         "PGRST301": "Your session expired. Log in again.",
-        # Function / table not found: the schema hasn't been set up in this project.
-        "PGRST202": "The database isn't set up yet. Run supabase/schema.sql in Supabase's SQL Editor.",
-        "PGRST205": "The database isn't set up yet. Run supabase/schema.sql in Supabase's SQL Editor.",
+        # Function / table / column not found: migrations haven't been run in this project.
+        "PGRST202": "The database isn't set up yet. Run the files in supabase/migrations/ in Supabase's SQL Editor, in order.",
+        "PGRST205": "The database isn't set up yet. Run the files in supabase/migrations/ in Supabase's SQL Editor, in order.",
+        "42703": "The database isn't set up yet. Run the files in supabase/migrations/ in Supabase's SQL Editor, in order.",  # a column is missing: a later migration hasn't been run
     }
     if code == "weak_password":
         return detail  # Supabase explains what the password is missing
@@ -248,6 +249,7 @@ def show_profile(client: Supabase, session: Session) -> None:
     profile = fetch_profile(client, session)
     restrictions = ", ".join(profile["dietary_restrictions"]) or "none"
     print(f"  Username:     {profile['username']}")
+    print(f"  Onboarded:    {'yes' if profile['onboarded'] else 'no (the app will show the goals step)'}")
     print(f"  Email:        {session.email}")
     print(f"  Calorie goal: {profile['calorie_goal'] or 'not set'}")
     print(f"  Protein goal: {str(profile['protein_goal_g']) + ' g' if profile['protein_goal_g'] is not None else 'not set'}")

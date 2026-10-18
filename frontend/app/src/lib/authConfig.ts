@@ -1,6 +1,8 @@
 // Validation rules and user-facing messages for sign-up, log-in and the goals step.
 //
-// Nothing about these is final: the backend will own them. Screens never hard-code
+// The rules mirror the database's limits (supabase/migrations/); keep them in step,
+// or the database will reject what the form accepts. Nothing about these is final:
+// the backend will own them. Screens never hard-code
 // a rule or a message; they read them from here via useAuthConfig(). To pull them from
 // the backend, change loadAuthConfig() to fetch them (and merge over the defaults so a
 // missing key can't break a screen). Errors returned by the auth service itself are
@@ -13,19 +15,27 @@ export type FormField = "username" | "email" | "password";
 export type AuthConfig = {
   rules: {
     usernameMinLength: number;
+    usernameMaxLength: number;
+    usernamePattern: string; // a RegExp source the whole username must match
     passwordMinLength: number;
     emailPattern: string; // a RegExp source
+    calorieGoal: { min: number; max: number };
+    proteinGoal: { min: number; max: number };
   };
-  // Templates may use {min}, filled in by formatMessage().
+  // Templates may use {placeholders}, filled in by formatMessage().
   messages: {
     usernameRequired: string;
     usernameTooShort: string;
+    usernameTooLong: string;
+    usernameInvalid: string;
+    usernameTaken: string;
     emailRequired: string;
     emailInvalid: string;
     passwordRequired: string;
     passwordTooShort: string;
     passwordMismatch: string;
     goalsInvalid: string;
+    confirmEmail: string; // after sign-up, when the account must confirm its email first
     signUpFailed: string; // fallback when the service gives no message
     logInFailed: string;
     saveFailed: string;
@@ -37,19 +47,27 @@ export type AuthConfig = {
 
 export const DEFAULT_AUTH_CONFIG: AuthConfig = {
   rules: {
-    usernameMinLength: 1,
+    usernameMinLength: 3,
+    usernameMaxLength: 30,
+    usernamePattern: "^[A-Za-z0-9_]+$",
     passwordMinLength: 8,
     emailPattern: "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$",
+    calorieGoal: { min: 1, max: 10000 },
+    proteinGoal: { min: 1, max: 1000 },
   },
   messages: {
     usernameRequired: "Enter a username.",
     usernameTooShort: "Use at least {min} characters.",
+    usernameTooLong: "Use at most {max} characters.",
+    usernameInvalid: "Use only letters, numbers and underscores.",
+    usernameTaken: "That username is taken.",
     emailRequired: "Enter your email.",
     emailInvalid: "Enter a valid email address.",
     passwordRequired: "Enter your password.",
     passwordTooShort: "Use at least {min} characters.",
     passwordMismatch: "Passwords don't match.",
-    goalsInvalid: "Enter a calorie and protein goal above 0.",
+    goalsInvalid: "Enter a calorie goal from {calorieMin} to {calorieMax} and a protein goal from {proteinMin} to {proteinMax} g.",
+    confirmEmail: "Check your email for a confirmation link, then log in.",
     signUpFailed: "Couldn't create your account. Try again.",
     logInFailed: "Couldn't log you in. Try again.",
     saveFailed: "Couldn't save your settings. Try again.",

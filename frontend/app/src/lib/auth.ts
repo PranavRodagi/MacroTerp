@@ -1,109 +1,79 @@
-// FAKE auth for now. Accounts live in this browser's localStorage.
+// Auth for the app: Supabase Auth when it's configured (lib/supabase.ts), otherwise a
+// local fake (lib/fakeAuth.ts) so the app still runs without a backend.
 //
-// The exported `auth` object mirrors the subset of supabase-js `supabase.auth` we use,
-// with the same arguments and `{ data, error }` results. To switch to Supabase,
-// replace this file with:
-//
-//   import { createClient } from "@supabase/supabase-js";
-//   export const supabase = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_ANON_KEY);
-//   export const auth = supabase.auth;
-//   export type { User, Session } from "@supabase/supabase-js";
-//
-// Screens only use: signUp, signInWithPassword, signOut, getSession, onAuthStateChange,
-// and read `user.id`, `user.email` and `user.user_metadata.username`.
+// Both implement AuthService, the subset of supabase-js `supabase.auth` the app uses,
+// with the same arguments and `{ data, error }` results. Screens only use: signUp,
+// signInWithPassword, signOut, getSession, onAuthStateChange, and read `user.id`,
+// `user.email` and `user.user_metadata.username`.
 // Errors carry Supabase's `code` (e.g. user_already_exists, invalid_credentials, weak_password);
 // screens show `message` as-is and use `code` only to pick the form field.
 
-import { DEFAULT_AUTH_CONFIG } from "./authConfig";
+import type { AuthChangeEvent, Session as SupabaseSession, SupabaseClient, User as SupabaseUser } from "@supabase/supabase-js";
+import { fakeAuth } from "./fakeAuth";
+import { supabase } from "./supabase";
 
 export type User = { id: string; email: string; user_metadata: { username?: string } };
 export type Session = { user: User };
 export type AuthError = { message: string; code?: string };
-type AuthResult = { data: { user: User | null; session: Session | null }; error: AuthError | null };
-type AuthEvent = "SIGNED_IN" | "SIGNED_OUT";
+export type AuthEvent = AuthChangeEvent;
+export type AuthResult = { data: { user: User | null; session: Session | null }; error: AuthError | null };
 
-const USERS_KEY = "nourish:fake-users";
-const SESSION_KEY = "nourish:fake-session";
-type StoredUser = User & { passwordHash: string };
-
-const listeners = new Set<(event: AuthEvent, session: Session | null) => void>();
-
-function read<T>(key: string, fallback: T): T {
-  try {
-    return JSON.parse(localStorage.getItem(key) || "null") ?? fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-function write(key: string, value: unknown) {
-  try {
-    if (value === null) localStorage.removeItem(key);
-    else localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    /* storage unavailable: the session just won't persist */
-  }
-}
-
-// Not real security; it just avoids keeping plain-text passwords in localStorage.
-async function hash(password: string) {
-  const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(password));
-  return Array.from(new Uint8Array(bytes), (b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-const delay = () => new Promise((r) => setTimeout(r, 250)); // feel like a network call
-const publicUser = ({ passwordHash: _, ...user }: StoredUser): User => user;
-
-function startSession(user: User): AuthResult {
-  const session = { user };
-  write(SESSION_KEY, session);
-  listeners.forEach((fn) => fn("SIGNED_IN", session));
-  return { data: { user, session }, error: null };
-}
-
-const fail = (code: string, message: string): AuthResult => ({ data: { user: null, session: null }, error: { code, message } });
-
-export const auth = {
-  async signUp({ email, password, options }: { email: string; password: string; options?: { data?: { username?: string } } }) {
-    await delay();
-    const users = read<Record<string, StoredUser>>(USERS_KEY, {});
-    const key = email.trim().toLowerCase();
-    // The fake service enforces the same rule the form uses; the real backend will have its own.
-    const min = DEFAULT_AUTH_CONFIG.rules.passwordMinLength;
-    if (users[key]) return fail("user_already_exists", "User already registered");
-    if (password.length < min) return fail("weak_password", `Password should be at least ${min} characters.`);
-    const user: StoredUser = {
-      id: crypto.randomUUID(),
-      email: key,
-      user_metadata: { username: options?.data?.username },
-      passwordHash: await hash(password),
-    };
-    write(USERS_KEY, { ...users, [key]: user });
-    return startSession(publicUser(user));
-  },
-
-  async signInWithPassword({ email, password }: { email: string; password: string }) {
-    await delay();
-    const user = read<Record<string, StoredUser>>(USERS_KEY, {})[email.trim().toLowerCase()];
-    if (!user || user.passwordHash !== (await hash(password))) return fail("invalid_credentials", "Invalid login credentials");
-    return startSession(publicUser(user));
-  },
-
-  async signOut() {
-    write(SESSION_KEY, null);
-    listeners.forEach((fn) => fn("SIGNED_OUT", null));
-    return { error: null };
-  },
-
-  async getSession() {
-    return { data: { session: read<Session | null>(SESSION_KEY, null) }, error: null };
-  },
-
-  onAuthStateChange(callback: (event: AuthEvent, session: Session | null) => void) {
-    listeners.add(callback);
-    const unsubscribe = () => {
-      listeners.delete(callback);
-    };
-    return { data: { subscription: { unsubscribe } } };
-  },
+export type AuthService = {
+  signUp(credentials: { email: string; password: string; options?: { data?: { username?: string } } }): Promise<AuthResult>;
+  signInWithPassword(credentials: { email: string; password: string }): Promise<AuthResult>;
+  signOut(): Promise<{ error: AuthError | null }>;
+  getSession(): Promise<{ data: { session: Session | null }; error: AuthError | null }>;
+  onAuthStateChange(callback: (event: AuthEvent, session: Session | null) => void): {
+    data: { subscription: { unsubscribe: () => void } };
+  };
 };
+
+// ---------------------------------------------------------------- Supabase
+
+const toUser = (user: SupabaseUser): User => ({
+  id: user.id,
+  email: user.email ?? "",
+  user_metadata: { username: typeof user.user_metadata.username === "string" ? user.user_metadata.username : undefined },
+});
+
+const toSession = (session: SupabaseSession | null): Session | null => (session ? { user: toUser(session.user) } : null);
+
+const toError = (error: { message: string; code?: string }): AuthError => ({ message: error.message, code: error.code });
+
+const failed = (error: AuthError): AuthResult => ({ data: { user: null, session: null }, error });
+
+export function supabaseAuth(client: SupabaseClient): AuthService {
+  return {
+    async signUp(credentials) {
+      const { data, error } = await client.auth.signUp(credentials);
+      if (error) return failed(toError(error));
+      // With "Confirm email" on, Supabase doesn't reveal that an email is registered:
+      // a repeat sign-up "succeeds" with no identities. Report it the way Supabase
+      // does when confirmation is off.
+      if (data.user?.identities?.length === 0) return failed({ code: "user_already_exists", message: "User already registered" });
+      return { data: { user: data.user && toUser(data.user), session: toSession(data.session) }, error: null };
+    },
+
+    async signInWithPassword(credentials) {
+      const { data, error } = await client.auth.signInWithPassword(credentials);
+      if (error) return failed(toError(error));
+      return { data: { user: toUser(data.user), session: toSession(data.session) }, error: null };
+    },
+
+    async signOut() {
+      const { error } = await client.auth.signOut();
+      return { error: error && toError(error) };
+    },
+
+    async getSession() {
+      const { data, error } = await client.auth.getSession();
+      return { data: { session: toSession(data.session) }, error: error && toError(error) };
+    },
+
+    onAuthStateChange(callback) {
+      return client.auth.onAuthStateChange((event, session) => callback(event, toSession(session)));
+    },
+  };
+}
+
+export const auth: AuthService = supabase ? supabaseAuth(supabase) : fakeAuth;

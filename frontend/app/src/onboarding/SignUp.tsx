@@ -32,10 +32,15 @@ export function SignUp({
   const [serverError, setServerError] = useState<SubmitError | null>(null);
 
   // Field checks show after the first submit attempt, then update as the user types.
+  const name = username.trim();
   const errors = {
-    username: !username.trim()
+    username: !name
       ? messages.usernameRequired
-      : username.trim().length < rules.usernameMinLength && formatMessage(messages.usernameTooShort, { min: rules.usernameMinLength }),
+      : name.length < rules.usernameMinLength
+        ? formatMessage(messages.usernameTooShort, { min: rules.usernameMinLength })
+        : name.length > rules.usernameMaxLength
+          ? formatMessage(messages.usernameTooLong, { max: rules.usernameMaxLength })
+          : !new RegExp(rules.usernamePattern).test(name) && messages.usernameInvalid,
     email: !email.trim() ? messages.emailRequired : !new RegExp(rules.emailPattern).test(email.trim()) && messages.emailInvalid,
     password: password.length < rules.passwordMinLength && formatMessage(messages.passwordTooShort, { min: rules.passwordMinLength }),
     confirm: confirm !== password && messages.passwordMismatch,
