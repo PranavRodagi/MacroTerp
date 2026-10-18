@@ -1,0 +1,285 @@
+/* Onboarding screens, ported from the Figma Make prototype "Onboarding and Registration Design".
+   Classes are prefixed ob- so they don't clash with the main screen's (e.g. .primary-button). */
+
+.app-loading { min-height: 100vh; background: var(--white); }
+
+/* Shared logo (also used in the main screen header) */
+.logo { display: flex; align-items: center; gap: 12px; }
+.logo-mark {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--sage);
+}
+.logo-name { font-size: 24px; font-weight: 600; letter-spacing: -0.03em; color: var(--ink); }
+.logo--compact .logo-mark { width: 36px; height: 36px; }
+.logo--compact .logo-name { font-size: 20px; }
+
+/* Buttons */
+.ob-primary-button,
+.ob-back-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 160ms ease, background 160ms ease, border-color 160ms ease;
+}
+
+.ob-primary-button {
+  min-height: 50px;
+  padding: 0 24px;
+  color: var(--pink-ink);
+  background: var(--pink);
+  border: 1px solid var(--pink);
+  box-shadow: 0 8px 24px rgba(177, 91, 80, 0.14);
+}
+.ob-primary-button:hover:not(:disabled) { background: #dc8175; transform: translateY(-1px); }
+.ob-primary-button:disabled { cursor: not-allowed; opacity: 0.5; }
+
+.ob-back-button { padding: 0; color: #656a62; background: none; border: 0; }
+
+.ob-wide-button { width: 100%; }
+
+button.ob-primary-button:focus-visible,
+.ob-back-button:focus-visible,
+.ob-chip:focus-visible,
+.ob-link-button:focus-visible,
+.ob-field-action:focus-visible {
+  outline: 3px solid rgba(169, 191, 157, 0.38);
+  outline-offset: 2px;
+}
+
+/* Welcome */
+.ob-welcome { position: relative; min-height: 100vh; overflow: hidden; background: var(--white); }
+
+.ob-welcome-blob { position: absolute; border-radius: 50%; }
+.ob-welcome-blob--sage { left: -120px; top: -140px; width: 360px; height: 360px; background: var(--sage-pale); }
+.ob-welcome-blob--pink { right: -100px; bottom: -170px; width: 390px; height: 390px; background: var(--pink-pale); }
+
+.ob-welcome-inner {
+  position: relative;
+  max-width: 1320px;
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 40px 32px 88px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: 24px;
+}
+
+.ob-welcome-copy { max-width: 620px; }
+
+.ob-display-title {
+  margin: 0;
+  font-size: 72px;
+  line-height: 1.02;
+  font-weight: 600;
+  letter-spacing: -0.05em;
+  color: var(--ink);
+}
+
+.ob-welcome-text { margin: 24px 0 0; max-width: 610px; font-size: 18px; line-height: 32px; color: var(--ink-soft); }
+
+.ob-welcome-start { min-width: 174px; margin-top: 32px; }
+
+.ob-welcome-art { position: relative; min-height: 620px; display: grid; place-items: center; }
+
+.ob-welcome-disc {
+  position: absolute;
+  width: 510px;
+  height: 510px;
+  border: 1px solid var(--sage-line);
+  border-radius: 50%;
+  background: var(--sage-wash);
+}
+
+.ob-welcome-garland {
+  position: absolute;
+  z-index: 10;
+  bottom: -55px;
+  left: 50%;
+  width: 570px;
+  transform: translateX(-50%);
+  mix-blend-mode: multiply;
+}
+
+.ob-food-cutout {
+  position: relative;
+  z-index: 1;
+  width: 610px;
+  height: 510px;
+  filter: drop-shadow(0 20px 30px rgba(70, 76, 66, 0.11));
+}
+.ob-food-cutout img { width: 100%; height: 100%; object-fit: contain; mix-blend-mode: multiply; }
+
+/* Form screens (sign up, log in, goals) */
+.ob-screen { min-height: 100vh; display: flex; flex-direction: column; background: var(--white); }
+
+.ob-progress-header,
+.ob-login-header {
+  width: 100%;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 32px 40px 0;
+  display: flex;
+  align-items: center;
+}
+.ob-progress-header { gap: 32px; }
+.ob-login-header { justify-content: space-between; }
+
+.ob-progress-track { flex: 1; height: 6px; overflow: hidden; border-radius: 999px; background: var(--track-warm); }
+.ob-progress-fill { height: 100%; border-radius: 999px; background: var(--pink); transition: width 500ms ease; }
+.ob-progress-count { width: 72px; text-align: right; font-size: 14px; color: var(--ink-soft); }
+
+.ob-content { width: 100%; max-width: 620px; margin: 0 auto; padding: 64px 28px 48px; }
+
+.ob-eyebrow {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--sage-deep);
+}
+
+.ob-screen-title { margin: 6px 0 0; font-size: 42px; line-height: 1.16; font-weight: 600; letter-spacing: -0.04em; }
+.ob-screen-copy { margin: 10px 0 0; line-height: 1.65; color: var(--ink-soft); }
+.ob-section-title { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.02em; }
+
+.ob-form-fields { margin-top: 36px; display: grid; gap: 20px; }
+
+.ob-field { display: block; }
+.ob-field-label { display: block; margin-bottom: 8px; font-size: 14px; font-weight: 600; color: var(--ink); }
+.ob-field-control { position: relative; display: block; }
+
+.ob-input {
+  width: 100%;
+  height: 51px;
+  padding: 0 16px;
+  font: inherit;
+  color: var(--ink);
+  background: var(--white);
+  border: 1px solid var(--field-border);
+  border-radius: 12px;
+  transition: border 150ms ease, box-shadow 150ms ease;
+}
+.ob-input::placeholder { color: var(--placeholder); }
+.ob-input:focus { border-color: #8ca17f; box-shadow: 0 0 0 3px rgba(169, 191, 157, 0.18); outline: none; }
+.ob-input--with-action { padding-right: 48px; }
+.ob-input--error,
+.ob-input--error:focus { border-color: var(--error-border); }
+
+.ob-field-action {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  display: grid;
+  padding: 0;
+  color: #777b73;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+
+.ob-field-error { display: block; margin-top: 6px; font-size: 12px; font-weight: 500; color: var(--error); }
+.ob-form-error { margin: 16px 0 0; font-size: 14px; font-weight: 500; color: var(--error); }
+
+.ob-switch-auth { margin: 28px 0 0; text-align: center; font-size: 14px; color: var(--ink-soft); }
+.ob-link-button {
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--link);
+  background: none;
+  border: 0;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+
+.ob-switch-auth + .ob-wide-button { margin-top: 24px; }
+.ob-login-submit { margin-top: 8px; }
+
+/* Goals */
+.ob-restrictions { margin-top: 36px; }
+.ob-chips { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 12px; }
+
+.ob-chip {
+  min-height: 44px;
+  padding: 0 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #50544e;
+  background: var(--white);
+  border: 1px solid var(--field-border);
+  border-radius: 999px;
+  cursor: pointer;
+}
+.ob-chip:hover { border-color: var(--sage); }
+.ob-chip--selected { color: #506847; background: var(--sage-pale); border-color: var(--sage); }
+
+.ob-divider { height: 1px; margin: 32px 0; background: var(--line); }
+
+.ob-goal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.ob-goal-card { padding: 24px; border-radius: 22px; }
+.ob-goal-card--calories { background: var(--surface-warm); }
+.ob-goal-card--protein { background: var(--pink-wash); }
+
+.ob-goal-label { font-size: 14px; font-weight: 600; color: var(--ink-soft); }
+.ob-goal-card--protein .ob-goal-label { color: var(--pink); }
+
+.ob-goal-row { margin-top: 12px; display: flex; align-items: flex-end; gap: 8px; }
+
+.ob-goal-input {
+  width: 112px;
+  padding: 0;
+  font-family: var(--font-serif);
+  font-size: 36px;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  color: var(--ink);
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid #d8d5cf;
+  border-radius: 0;
+  outline: none;
+}
+.ob-goal-input:focus { border-bottom-color: var(--pink); }
+.ob-goal-input[aria-invalid="true"] { border-bottom-color: var(--error-border); }
+
+.ob-goal-unit { margin-bottom: 3px; font-size: 23px; font-weight: 500; line-height: 1.4; color: var(--ink-soft); }
+
+.ob-goals-continue { min-width: 168px; margin-top: 28px; }
+
+/* The prototype is desktop-only; this phone layout is ours. */
+@media (max-width: 900px) {
+  .ob-welcome-inner { grid-template-columns: 1fr; padding: 72px 24px 64px; gap: 8px; }
+  .ob-display-title { font-size: clamp(44px, 12vw, 72px); }
+  .ob-welcome-text { font-size: 16px; line-height: 28px; }
+  .ob-welcome-art { min-height: 0; height: min(92vw, 520px); }
+  .ob-welcome-disc { width: 84%; height: auto; aspect-ratio: 1; }
+  .ob-food-cutout { width: 100%; height: 100%; }
+  .ob-welcome-garland { width: 94%; bottom: -6%; }
+}
+
+@media (max-width: 760px) {
+  .ob-progress-header,
+  .ob-login-header { padding: 24px 20px 0; }
+  .ob-progress-header { gap: 16px; }
+  .ob-progress-count { width: auto; }
+  .ob-content { padding: 40px 20px 40px; }
+  .ob-screen-title { font-size: 34px; }
+  .ob-goal-grid { grid-template-columns: 1fr; }
+  .ob-goals-continue { width: 100%; }
+}

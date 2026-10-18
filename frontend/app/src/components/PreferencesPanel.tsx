@@ -2,12 +2,37 @@ import { useEffect, useState } from "react";
 import { Icon } from "./Icon";
 import { NUTRIENTS, RESTRICTIONS, type NutrientKey, type Personalization } from "../lib/nutrition";
 
+// Keeps the typed text as-is while editing (so the field can be cleared and has no stray
+// leading zero), selects everything on focus so typing replaces it, and tidies up on blur.
+// An empty field counts as 0.
 function NumberField({ label, value, unit, onChange }: { label: string; value: number; unit: string; onChange: (value: number) => void }) {
+  const [text, setText] = useState(String(value));
+  const [editing, setEditing] = useState(false);
+  const shown = editing ? text : String(value);
+
   return (
     <label className="number-field">
       <span>{label}</span>
       <div>
-        <input min="0" onChange={(e) => onChange(Math.max(0, Number(e.target.value) || 0))} type="number" value={value} />
+        <input
+          inputMode="decimal"
+          onBlur={() => setEditing(false)}
+          onChange={(e) => {
+            const raw = e.target.value
+              .replace(/[^\d.]/g, "") // digits and dots only
+              .replace(/(\..*)\./g, "$1") // at most one dot
+              .replace(/^0+(?=\d)/, ""); // no leading zeros ("08" → "8")
+            setText(raw);
+            onChange(raw === "" || raw === "." ? 0 : Number(raw));
+          }}
+          onFocus={(e) => {
+            setText(String(value));
+            setEditing(true);
+            e.target.select();
+          }}
+          type="text"
+          value={shown}
+        />
         <span>{unit}</span>
       </div>
     </label>
@@ -18,10 +43,12 @@ export function PreferencesPanel({
   initialValues,
   onClose,
   onSave,
+  onLogOut,
 }: {
   initialValues: Personalization;
   onClose: () => void;
   onSave: (values: Personalization) => void;
+  onLogOut: () => void;
 }) {
   const [values, setValues] = useState(initialValues);
 
@@ -104,6 +131,11 @@ export function PreferencesPanel({
           type="button"
         >
           Save changes
+        </button>
+
+        {/* Not in the main-screen design; added to connect with onboarding accounts. */}
+        <button className="secondary-button panel-logout" onClick={onLogOut} type="button">
+          Log out
         </button>
       </aside>
     </div>

@@ -18,13 +18,14 @@ export const NUTRIENTS: { key: NutrientKey; label: string; unit: string; color: 
 export const FIXED_GOALS = { carbs_g: 240, fat_g: 65, fiber_g: 28, sodium_mg: 2300, sugar_g: 50 };
 
 // Label shown in the UI → value meal_recommender.DIETARY_OPTIONS expects.
+// Order and wording follow the onboarding design; Personalize uses the same list.
 export const RESTRICTIONS: { label: string; value: string }[] = [
-  { label: "Halal", value: "halal_friendly" },
-  { label: "Vegetarian", value: "vegetarian" },
   { label: "Vegan", value: "vegan" },
-  { label: "Lactose intolerance", value: "lactose_intolerant" },
-  { label: "Nut allergy", value: "nut_allergy" },
+  { label: "Vegetarian", value: "vegetarian" },
+  { label: "Lactose intolerant", value: "lactose_intolerant" },
   { label: "Gluten free", value: "gluten_free" },
+  { label: "Halal friendly", value: "halal_friendly" },
+  { label: "Nut allergy", value: "nut_allergy" },
 ];
 
 export type Personalization = {
@@ -34,11 +35,12 @@ export type Personalization = {
   restrictions: string[]; // DIETARY_OPTIONS values
 };
 
+// Starting values for a new account (goals match the onboarding design's defaults).
 export const DEFAULT_PERSONALIZATION: Personalization = {
-  calorieGoal: 1900,
-  proteinGoal: 115,
-  consumed: { calories: 720, protein_g: 42, carbs_g: 96, fat_g: 31, fiber_g: 14, sodium_mg: 980, sugar_g: 28 },
-  restrictions: ["halal_friendly"],
+  calorieGoal: 2000,
+  proteinGoal: 150,
+  consumed: { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0, fiber_g: 0, sodium_mg: 0, sugar_g: 0 },
+  restrictions: [],
 };
 
 export const goalsOf = (p: Personalization): Totals => ({
@@ -46,24 +48,3 @@ export const goalsOf = (p: Personalization): Totals => ({
   protein_g: p.proteinGoal,
   ...FIXED_GOALS,
 });
-
-// Saved per browser until onboarding provides these values.
-const STORAGE_KEY = "meal-maker:personalization";
-
-export function loadPersonalization(): Personalization {
-  try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
-    if (saved) return { ...DEFAULT_PERSONALIZATION, ...saved, consumed: { ...DEFAULT_PERSONALIZATION.consumed, ...saved.consumed } };
-  } catch {
-    /* storage unavailable or corrupt: fall back to defaults */
-  }
-  return DEFAULT_PERSONALIZATION;
-}
-
-export function savePersonalization(p: Personalization) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(p));
-  } catch {
-    /* ignore */
-  }
-}

@@ -1,205 +1,164 @@
-import { useEffect, useMemo, useState } from "react";
-import { Icon } from "./components/Icon";
-import { PlateView } from "./components/PlateView";
-import { DailyProgress } from "./components/DailyProgress";
-import { MealNutritionChart } from "./components/MealNutritionChart";
-import { PreferencesPanel } from "./components/PreferencesPanel";
-import { fetchMeals, type MealPeriod } from "./lib/api";
-import { goalsOf, loadPersonalization, savePersonalization, type Personalization } from "./lib/nutrition";
-import type { MealsResponse } from "./lib/types";
+// Top-level flow: onboarding (welcome → sign up → goals, or log in) → main meal screen.
+// Which screen shows depends on the auth session and whether the profile is onboarded.
+import { useEffect, useState } from "react";
+import { MainScreen } from "./MainScreen";
+import { Welcome } from "./onboarding/Welcome";
+import { SignUp, type SignUpValues } from "./onboarding/SignUp";
+import { LogIn } from "./onboarding/LogIn";
+import { Goals, type GoalsValues } from "./onboarding/Goals";
+import { auth, type Session } from "./lib/auth";
+import { getProfile, newProfile, upsertProfile, type Profile } from "./lib/profile";
+import { ROUTES, usePath, type Screen } from "./lib/router";
+import type { Personalization } from "./lib/nutrition";
+import { DEMO_ACCOUNT, DEMO_MODE, DEMO_PASSWORD, demoSignUpEmail, withDemoIntake } from "./lib/demo";
+import "./onboarding/onboarding.css";
 
-const MEAL_PERIODS: MealPeriod[] = ["Breakfast", "Lunch", "Dinner"];
-// Placeholder hours from the design; the menu data has no serving times yet.
-const AVAILABLE_UNTIL: Record<MealPeriod, string> = { Breakfast: "10:30 AM", Lunch: "3:30 PM", Dinner: "9:00 PM" };
-
-// Hall order and short tab labels from the design. Names must match meal_recommender.HALL_NAMES.
-const HALLS = ["Yahentamitsi Dining Hall", "251 North", "South Campus"];
-const HALL_LABEL: Record<string, string> = { "Yahentamitsi Dining Hall": "Yahentamitsi" };
-// The recommender always returns exactly this many alternatives per hall (meal_recommender.MEALS_PER_HALL).
-const OPTIONS = [0, 1] as const;
-
-function periodNow(): MealPeriod {
-  const minutes = new Date().getHours() * 60 + new Date().getMinutes();
-  if (minutes < 10 * 60 + 30) return "Breakfast";
-  if (minutes < 15 * 60 + 30) return "Lunch";
-  return "Dinner";
+function screenFor(path: string, session: Session | null | undefined, profile: Profile | null | undefined): Screen | "loading" {
+  if (session === undefined || (session && !profile)) return "loading";
+  if (!session) return path === ROUTES.signup ? "signup" : path === ROUTES.login ? "login" : "welcome";
+  if (!profile!.onboarded) return path === ROUTES.signup ? "signup" : "goals"; // sign-up stays reachable via Back
+  return "meals";
 }
 
 export default function App() {
-  const [period, setPeriod] = useState<MealPeriod>(periodNow);
-  const [hall, setHall] = useState(HALLS[2]);
-  const [option, setOption] = useState<0 | 1>(0);
-  const [personalization, setPersonalization] = useState<Personalization>(loadPersonalization);
-  const [preferencesOpen, setPreferencesOpen] = useState(false);
-  const [data, setData] = useState<MealsResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [swipeStart, setSwipeStart] = useState<number | null>(null);
+  const [path, navigate] = usePath();
+  const [session, setSession] = useState<Session | null | undefined>(undefined); // undefined = still loading
+  const [profile, setProfile] = useState<Profile | null | undefined>(undefined);
+  const [draft, setDraft] = useState({ name: "", email: "" }); // refills sign-up when coming Back from goals
+  const userId = session?.user.id;
 
   useEffect(() => {
-    const ctrl = new AbortController();
-    setLoading(true);
-    setError(null);
-    fetchMeals(period, personalization, ctrl.signal)
-      .then((res) => {
-        setData(res);
-        setOption(0);
-      })
-      .catch((e) => {
-        if (ctrl.signal.aborted) return;
-        setError(e instanceof TypeError ? "Couldn't reach the meal server. Is `python server.py` running?" : e.message);
-      })
-      .finally(() => !ctrl.signal.aborted && setLoading(false));
-    return () => ctrl.abort();
-  }, [period, personalization]);
+    // Demo mode: every page load starts signed out, at Welcome (see lib/demo.ts).
+    const ready = DEMO_MODE ? auth.signOut() : Promise.resolve();
+    ready.then(() => auth.getSession()).then(({ data }) => setSession(data.session));
+    const { data } = auth.onAuthStateChange((_event, s) => setSession(s));
+    return () => data.subscription.unsubscribe();
+  }, []);
 
-  // [option 1, option 2] for this hall; an entry with no items means nothing fit.
-  const hallMeals = useMemo(
-    () => OPTIONS.map((i) => (data?.meals ?? []).find((m) => m.dining_hall === hall && m.meal_option === i + 1) ?? null),
-    [data, hall],
-  );
-  const meal = hallMeals[option];
-  const hasPlate = !!meal && meal.items.length > 0;
-  const available = (i: 0 | 1) => !!hallMeals[i]?.items.length;
-  const movePeriod = (dir: number) =>
-    setPeriod((p) => MEAL_PERIODS[(MEAL_PERIODS.indexOf(p) + dir + MEAL_PERIODS.length) % MEAL_PERIODS.length]);
-  const chooseHall = (h: string) => {
-    setHall(h);
-    setOption(0);
+  // Load the signed-in user's profile (a new, not-yet-onboarded one if none is saved).
+  useEffect(() => {
+    setProfile(undefined);
+    if (!session) return;
+    let live = true;
+    getProfile(session.user.id).then(({ data }) => {
+      // Don't overwrite a profile a handler already set (e.g. right after sign-up).
+      const loaded = data ?? newProfile(session.user.id, session.user.user_metadata.full_name ?? null);
+      if (live) setProfile((current) => current ?? withDemoIntake(loaded));
+    });
+    return () => {
+      live = false;
+    };
+  }, [userId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const screen = screenFor(path, session, profile);
+
+  // Keep the URL in step with the screen we're allowed to show.
+  useEffect(() => {
+    if (screen !== "loading" && ROUTES[screen] !== path) navigate(ROUTES[screen], { replace: true });
+  }, [screen, path]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const signUp = async ({ name, email, password }: SignUpValues) => {
+    setDraft({ name, email });
+    if (DEMO_MODE) {
+      // Fill blanks so the real sign-up path below still runs (see lib/demo.ts).
+      name ||= DEMO_ACCOUNT.name;
+      email ||= session?.user.email ?? demoSignUpEmail();
+      if (password.length < 6) password = DEMO_PASSWORD;
+    }
+    if (session && session.user.email === email.toLowerCase()) {
+      // Came Back from goals without changing the email: the account already exists.
+      const updated = { ...profile!, full_name: name };
+      await upsertProfile(updated);
+      setProfile(updated);
+      navigate(ROUTES.goals);
+      return null;
+    }
+    if (session) await auth.signOut();
+    const { data, error } = await auth.signUp({ email, password, options: { data: { full_name: name } } });
+    if (error || !data.user) {
+      if (/already registered/i.test(error?.message ?? "")) return { field: "email" as const, message: "An account with this email already exists. Log in instead." };
+      if (/password/i.test(error?.message ?? "")) return { field: "password" as const, message: error!.message };
+      return { message: error?.message ?? "Couldn't create your account. Try again." };
+    }
+    const created = withDemoIntake(newProfile(data.user.id, name));
+    const { error: saveError } = await upsertProfile(created);
+    if (saveError) return { message: saveError.message };
+    setProfile(created);
+    navigate(ROUTES.goals);
+    return null;
   };
-  const savePrefs = (p: Personalization) => {
-    setPersonalization(p);
-    savePersonalization(p);
+
+  const logIn = async (email: string, password: string) => {
+    if (DEMO_MODE && !(email && password)) return demoLogIn();
+    const { error } = await auth.signInWithPassword({ email, password });
+    if (!error) return null; // the profile loads and the redirect picks goals or meals
+    if (DEMO_MODE) return demoLogIn();
+    return /invalid login/i.test(error.message) ? "Email or password is incorrect." : error.message;
   };
 
-  return (
-    <div className="app-shell">
-      <header className="site-header">
-        {/* Placeholder logo and app name; the final branding isn't decided yet. */}
-        <div className="brand">
-          <div className="brand-mark">
-            <Icon name="leaf" size={22} />
-          </div>
-          <span>Meal Maker</span>
-        </div>
-        <button aria-label="Personalize" className="preferences-button" onClick={() => setPreferencesOpen(true)} type="button">
-          <Icon name="sliders" size={18} />
-          <span>Personalize</span>
-        </button>
-      </header>
+  // Demo mode only: sign into the shared demo account (created and onboarded on first use).
+  const demoLogIn = async () => {
+    const creds = { email: DEMO_ACCOUNT.email, password: DEMO_PASSWORD };
+    let { data, error } = await auth.signInWithPassword(creds);
+    if (error) ({ data, error } = await auth.signUp({ ...creds, options: { data: { full_name: DEMO_ACCOUNT.name } } }));
+    if (error || !data.user) return error?.message ?? "Couldn't open the demo account.";
+    const existing = (await getProfile(data.user.id)).data;
+    const demoProfile = withDemoIntake({ ...(existing ?? newProfile(data.user.id, DEMO_ACCOUNT.name)), onboarded: true });
+    await upsertProfile(demoProfile);
+    setProfile(demoProfile);
+    navigate(ROUTES.meals);
+    return null;
+  };
 
-      <main>
-        <section className="intro">
-          <div
-            aria-label="Choose meal period"
-            className="meal-period-picker"
-            onTouchEnd={(e) => {
-              if (swipeStart === null) return;
-              const distance = e.changedTouches[0].clientX - swipeStart;
-              if (Math.abs(distance) > 45) movePeriod(distance < 0 ? 1 : -1);
-              setSwipeStart(null);
-            }}
-            onTouchStart={(e) => setSwipeStart(e.touches[0].clientX)}
-            role="group"
-          >
-            {MEAL_PERIODS.map((p) => (
-              <button
-                aria-pressed={period === p}
-                className={`meal-period-option ${period === p ? "active" : ""}`}
-                key={p}
-                onClick={() => setPeriod(p)}
-                type="button"
-              >
-                {p}
-              </button>
-            ))}
-          </div>
-        </section>
+  const finishGoals = async (values: GoalsValues) => {
+    const updated: Profile = { ...profile!, onboarded: true, personalization: { ...profile!.personalization, ...values } };
+    const { error } = await upsertProfile(updated);
+    if (error) return error.message;
+    setProfile(updated);
+    navigate(ROUTES.meals);
+    return null;
+  };
 
-        <section className="meal-layout">
-          <article className="meal-card" aria-busy={loading}>
-            <div className="meal-card-header">
-              <div className="meal-title">
-                <h2>{meal ? meal.meal_name : loading ? "Building your meals…" : "No meals yet"}</h2>
-              </div>
-              <div aria-label="Dining hall selection" className="hall-tabs header-hall-tabs" role="group">
-                {HALLS.map((h) => (
-                  <button
-                    aria-pressed={hall === h}
-                    className={`hall-tab ${hall === h ? "active" : ""}`}
-                    key={h}
-                    onClick={() => chooseHall(h)}
-                    type="button"
-                  >
-                    {HALL_LABEL[h] ?? h}
-                  </button>
-                ))}
-              </div>
-            </div>
+  const savePersonalization = (personalization: Personalization) => {
+    const updated = { ...profile!, personalization };
+    setProfile(updated);
+    upsertProfile(updated);
+  };
 
-            <div className={`visualizer-area ${loading ? "is-loading" : ""}`}>
-              {/* Two options per hall, no wrap-around: the arrow with nowhere to go is disabled. */}
-              <button
-                aria-label="Previous meal"
-                className="arrow-button arrow-left"
-                disabled={option === 0 || !available(0)}
-                onClick={() => setOption(0)}
-                type="button"
-              >
-                <Icon name="arrow-left" size={25} />
-              </button>
-              {error ? (
-                <p className="visualizer-message">{error}</p>
-              ) : hasPlate ? (
-                <div className="visualizer-shell" key={`${hall}-${option}-${meal.meal_name}`}>
-                  <PlateView meal={meal} />
-                </div>
-              ) : (
-                !loading && <p className="visualizer-message">No meal at this hall fits your settings for {period.toLowerCase()}.</p>
-              )}
-              <button
-                aria-label="Next meal"
-                className="arrow-button arrow-right"
-                disabled={option === 1 || !available(1)}
-                onClick={() => setOption(1)}
-                type="button"
-              >
-                <Icon name="arrow-right" size={25} />
-              </button>
-            </div>
+  const logOut = async () => {
+    await auth.signOut();
+    setDraft({ name: "", email: "" });
+    navigate(ROUTES.welcome);
+  };
 
-            <div className="visualizer-pagination">
-              <div className="meal-dots" aria-label={`Meal ${option + 1} of ${OPTIONS.length}`}>
-                {OPTIONS.map((i) => (
-                  <button
-                    aria-label={available(i) ? `Show ${hallMeals[i]!.meal_name}` : "No other meal fits your settings"}
-                    className={`meal-dot ${option === i ? "active" : ""}`}
-                    disabled={!available(i) && option !== i}
-                    key={i}
-                    onClick={() => setOption(i)}
-                    type="button"
-                  />
-                ))}
-              </div>
-            </div>
-
-            <div className="nutrition-dashboard">
-              <DailyProgress consumed={personalization.consumed} goals={goalsOf(personalization)} />
-              {hasPlate && <MealNutritionChart totals={meal.meal_macros_total} />}
-            </div>
-
-            <div className="meal-footer">
-              <p className="availability">
-                <span /> Available now until {AVAILABLE_UNTIL[period]}
-              </p>
-            </div>
-          </article>
-        </section>
-      </main>
-
-      {preferencesOpen && (
-        <PreferencesPanel initialValues={personalization} onClose={() => setPreferencesOpen(false)} onSave={savePrefs} />
-      )}
-    </div>
-  );
+  switch (screen) {
+    case "loading":
+      return <div aria-busy="true" className="app-loading" />;
+    case "welcome":
+      return <Welcome onStart={() => navigate(ROUTES.signup)} />;
+    case "signup":
+      return (
+        <SignUp
+          initial={draft}
+          onBack={async () => {
+            if (session) await auth.signOut(); // leaving sign-up after the account exists
+            navigate(ROUTES.welcome);
+          }}
+          onLogin={() => navigate(ROUTES.login)}
+          onSubmit={signUp}
+        />
+      );
+    case "login":
+      return <LogIn onBack={() => navigate(ROUTES.signup)} onSubmit={logIn} />;
+    case "goals":
+      return (
+        <Goals
+          initial={profile!.personalization}
+          onBack={() => navigate(ROUTES.signup)}
+          onSubmit={finishGoals}
+        />
+      );
+    case "meals":
+      return <MainScreen onLogOut={logOut} onSavePersonalization={savePersonalization} personalization={profile!.personalization} />;
+  }
 }

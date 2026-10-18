@@ -23,6 +23,20 @@
   --track: #f0eee9;
   --surface-muted: #fafafa;
   --white: #ffffff;
+  /* Added for onboarding (Onboarding and Registration Design Make file). */
+  --pink-ink: #442722;      /* text on pink buttons */
+  --pink-pale: #f9e3df;
+  --pink-wash: #fdf2f0;
+  --sage-pale: #eaf0e6;
+  --sage-wash: #eef3ea;
+  --sage-line: #dfe8d9;
+  --surface-warm: #f7f7f4;
+  --track-warm: #eeece8;
+  --field-border: #dcd9d2;
+  --placeholder: #aaa99f;
+  --link: #a8544a;
+  --error: #b65349;
+  --error-border: #d16b60;
   --font-serif: "Noto Serif", Georgia, serif;
   --font-ui: Arial, sans-serif;
   font-family: var(--font-serif);
@@ -66,27 +80,8 @@ h1, h2, p { margin-top: 0; }
   z-index: 20;
 }
 
-.brand, .preferences-button { display: flex; align-items: center; }
-
-.brand {
-  gap: 10px;
-  font-size: 20px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-}
-
-.brand-mark {
-  width: 38px;
-  height: 38px;
-  display: grid;
-  place-items: center;
-  border-radius: 12px 12px 12px 4px;
-  color: var(--white);
-  background: var(--pink);
-  transform: rotate(-3deg);
-}
-
-.brand-mark svg { transform: rotate(3deg); }
+/* The header logo is the shared .logo (onboarding/onboarding.css). */
+.preferences-button { display: flex; align-items: center; }
 
 .preferences-button {
   gap: 8px;
@@ -104,7 +99,7 @@ h1, h2, p { margin-top: 0; }
   background: var(--sage-soft);
 }
 
-main {
+.app-shell > main {
   width: min(1480px, calc(100% - 48px));
   margin: 0 auto;
   padding: 52px 0 60px;
@@ -425,11 +420,31 @@ main {
   border-radius: 999px;
 }
 
+.progress-track { display: flex; }
+
 .progress-fill {
   height: 100%;
   border-radius: inherit;
   transition: width 400ms ease;
 }
+
+/* Eaten (solid) + the meal on screen (lighter), drawn as one continuous bar. */
+.progress-fill--joined { border-radius: 999px 0 0 999px; }
+.progress-fill--preview { opacity: 0.4; border-radius: 0 999px 999px 0; }
+.progress-fill--preview:only-child,
+.progress-fill:first-child[style*="width: 0%"] + .progress-fill--preview { border-radius: 999px; }
+
+.progress-added { font-style: normal; font-weight: 700; color: var(--ink-soft); }
+
+.progress-key { display: flex; align-items: center; gap: 6px; }
+.progress-key-swatch {
+  display: inline-block;
+  width: 14px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--ink-faint);
+}
+.progress-key-swatch--preview { margin-left: 8px; opacity: 0.4; }
 
 .progress-fill.pink { background: var(--pink); }
 .progress-fill.sage { background: var(--sage); }
@@ -669,6 +684,20 @@ legend { margin-bottom: 12px; font-size: 14px; font-weight: 600; }
 
 .panel-save { margin-top: 28px; }
 
+.secondary-button {
+  width: 100%;
+  padding: 12px 16px;
+  color: var(--ink-soft);
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: 160ms ease;
+}
+.secondary-button:hover { color: var(--ink); border-color: var(--sage); }
+
+.panel-logout { margin-top: 12px; }
+
 @media (max-width: 760px) {
   .site-header { height: 68px; padding: 0 18px; }
 
@@ -676,7 +705,7 @@ legend { margin-bottom: 12px; font-size: 14px; font-weight: 600; }
   .preferences-button { padding: 10px; }
   .preferences-button span { display: none; }
 
-  main { width: calc(100% - 28px); padding: 30px 0 40px; }
+  .app-shell > main { width: calc(100% - 28px); padding: 30px 0 40px; }
 
   .intro { padding-inline: 20px; }
 
