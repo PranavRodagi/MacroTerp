@@ -771,7 +771,11 @@ def _meal_name(items: list[MenuItem]) -> str:
             labels.append(label)
     if not labels:
         return "No meal available"
-    return " & ".join(label.title() for label in labels[:3]) + (" Meal" if len(labels) == 1 else "")
+    # "X Meal", "X & Y Meal", "X, Y, & Z Meal" from the first three categories.
+    shown = [label.title() for label in labels[:3]]
+    if len(shown) > 2:
+        shown = [", ".join(shown[:-1]) + ","] + shown[-1:]
+    return " & ".join(shown) + " Meal"
 
 
 def generate_meals(
