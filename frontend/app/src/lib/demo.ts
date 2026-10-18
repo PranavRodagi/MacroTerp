@@ -20,7 +20,7 @@ const demoSetting = import.meta.env.VITE_DEMO_MODE;
 export const DEMO_MODE = demoSetting ? demoSetting !== "false" : supabase === null;
 
 export const DEMO_PASSWORD = "demo-password";
-export const DEMO_ACCOUNT = { username: "demo_student", email: "demo@nourishumd.demo" };
+export const DEMO_ACCOUNT = { username: "demo_student", email: "demo@macroterp.demo" };
 
 // Sample "intake so far" for demo accounts, so Daily progress isn't empty
 // (roughly breakfast eaten; these were the main-screen design's sample values).
@@ -32,6 +32,6 @@ export function withDemoIntake<P extends { personalization: Personalization }>(p
 }
 
 // A fresh address for each blank sign-up, so demo sign-ups never collide.
-export const demoSignUpEmail = () => `demo-${Date.now().toString(36)}@nourishumd.demo`;
+export const demoSignUpEmail = () => `demo-${Date.now().toString(36)}@macroterp.demo`;
 // Likewise a fresh username, since usernames must be unique.
 export const demoSignUpUsername = () => `demo_${Date.now().toString(36)}`;

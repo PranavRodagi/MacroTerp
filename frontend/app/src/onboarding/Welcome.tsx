@@ -12,7 +12,7 @@ export function Welcome({ onStart }: { onStart: () => void }) {
           <h1 className="ob-display-title">
             Welcome to
             <br />
-            NourishUMD.
+            MacroTerp.
           </h1>
           <p className="ob-welcome-text">
             Know what to eat before you get to the dining hall. Tell us your protein and calorie goals and your dietary preferences, and

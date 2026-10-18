@@ -2,11 +2,12 @@
 // this browser's localStorage. Mirrors supabase-js `supabase.auth`: same arguments,
 // `{ data, error }` results, and Supabase's error codes and messages.
 
+import "./legacyStorage";
 import { DEFAULT_AUTH_CONFIG } from "./authConfig";
 import type { AuthEvent, AuthResult, AuthService, Session, User } from "./auth";
 
-const USERS_KEY = "nourish:fake-users";
-const SESSION_KEY = "nourish:fake-session";
+const USERS_KEY = "macroterp:fake-users";
+const SESSION_KEY = "macroterp:fake-session";
 type StoredUser = User & { passwordHash: string };
 
 const listeners = new Set<(event: AuthEvent, session: Session | null) => void>();

@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Technica 2026 hackathon project **NourishUMD** (placeholder name): recommends UMD dining hall meals that fit a student's goals and shows each one as a plated meal.
+Technica 2026 hackathon project **MacroTerp**: recommends UMD dining hall meals that fit a student's goals and shows each one as a plated meal.
 
 ## Running it
 
@@ -11,7 +11,7 @@ cd frontend/app && npm install && npm run dev   # app on :5173, proxies /api →
 
 Accounts use Supabase when `frontend/app/.env.local` has the project URL and publishable key (copy `.env.example`); otherwise the app uses local fakes, so it runs without them. Database setup: run each file in `supabase/migrations/` once, in order, in the Supabase SQL Editor. `account_cli.py` is a temporary terminal client for testing accounts; delete it once it's no longer needed.
 
-**Deploy:** the frontend is on Vercel (project root `frontend/app`, Vite preset) and the API on Render (`render.yaml` Blueprint, free plan, health check `GET /api/health`). `frontend/app/vercel.json` forwards `/api/*` to `https://nourishumd-api.onrender.com` and sends every other path to `index.html`; update that URL if the Render service gets a different one. `server.py` reads `$PORT`. Pushing to `main` redeploys both. Supabase keys go in Vercel's environment variables (they're read at build time). Render's free plan sleeps after ~15 min idle, so the first request then takes 30–60s.
+**Deploy:** the frontend is on Vercel (project root `frontend/app`, Vite preset) and the API on Render (`render.yaml` Blueprint, free plan, health check `GET /api/health`). `frontend/app/vercel.json` forwards `/api/*` to `https://nourishumd-api.onrender.com` and sends every other path to `index.html`; update that URL if the Render service gets a different one. `server.py` reads `$PORT`. Both deploy from the fork `mahirhalani/MacroTerp-deployment` (Vercel project `technica26`, https://technica26.vercel.app; Render service `nourishumd-api`), not from this repo, until the repo owner grants the access to connect them here. So pushing to `main` doesn't go live: sync the fork (GitHub → Sync fork) to redeploy. The Render service keeps its old `nourishumd-api` name/URL on purpose (renaming means a new service and URL); users never see it. Supabase keys go in Vercel's environment variables (they're read at build time). Render's free plan sleeps after ~15 min idle, so the first request then takes 30–60s.
 
 Backend data refresh: `pip install -r requirements.txt`, then `python scraper.py scrape` and `python scraper.py export --date YYYY-MM-DD` (writes `menu_<date>.json`; `server.py` reads `menu.json`, so copy or rename it).
 
@@ -36,6 +36,7 @@ frontend/
     src/lib/               # api.ts (meals fetch), auth.ts + profile.ts (Supabase, or fakeAuth.ts + fakeProfile.ts
                            # without it), supabase.ts (client), authConfig.ts, demo.ts, router.ts,
                            # nutrition.ts (nutrients, goals, restrictions, defaults), types.ts
+    src/assets/logo-mark.svg  # MacroTerp logo (also the favicon)
     src/assets/onboarding/ # welcome-screen images from the onboarding Make file
     src/styles.css         # main screen styles + all app design tokens
   plate-visualizer/        # standalone plate component (vanilla JS); source of truth for the plate
@@ -45,7 +46,7 @@ frontend/
 
 **Ownership:** the Python files other than `server.py` belong to the backend teammate. Don't edit them for frontend work; adapt in `server.py` instead.
 
-**Placeholder branding:** the "NourishUMD" name and bowl logo (`components/Logo.tsx`, from the onboarding design) are placeholders, used in the onboarding and the main screen header. Don't polish them or treat them as final.
+**Branding:** the app is **MacroTerp** (formerly NourishUMD). The logo is `src/assets/logo-mark.svg` (a plate with chicken and leafy greens on a sage disc), used by `components/Logo.tsx` in the onboarding and main screen header, and as the favicon.
 
 ## Onboarding & accounts
 
@@ -71,14 +72,14 @@ Any other path redirects to the allowed screen. Wiring that isn't in either Figm
 
 **Demo mode is ON by default when Supabase isn't configured** (`lib/demo.ts`, `DEMO_MODE`), so the demo needs no typing. With Supabase configured it's off by default, so real accounts aren't signed out or filled with demo sign-ups. Force it either way with `VITE_DEMO_MODE=true` or `false`. While on:
 - Every page load signs out and starts at Welcome, even on `/meals`. Saved accounts and settings are kept.
-- Sign up skips validation, and blank fields get demo values (a fresh `demo-…@nourishumd.demo` email and `demo_…` username each time).
+- Sign up skips validation, and blank fields get demo values (a fresh `demo-…@macroterp.demo` email and `demo_…` username each time).
 - Log in with blank or wrong credentials opens a shared, already-onboarded demo account and goes straight to `/meals`.
 - Correct credentials still log into that account.
 - Any account whose "intake so far" is all zero shows sample intake (`DEMO_INTAKE`: 720 cal, 42 g protein, …) so Daily progress isn't empty. It's applied on sign-up, demo log-in and profile load (`withDemoIntake`). With demo mode off, new accounts start at 0.
 
 The real validation and auth paths are untouched, only bypassed behind `DEMO_MODE` checks in `SignUp.tsx`, `LogIn.tsx` and `App.tsx`. Don't remove the real code paths.
 
-**Accounts: Supabase, with local fakes as a fallback.** `lib/auth.ts` exports `auth` (an `AuthService`: `signUp`, `signInWithPassword`, `signOut`, `getSession`, `onAuthStateChange`, `{ data, error }` results, same API as `supabase.auth`). `lib/profile.ts` exports `getProfile`, `upsertProfile` and `isUsernameAvailable` (a `ProfileStore`) for `Profile = { id, username, onboarded, personalization }`. When `lib/supabase.ts` has a client, they use Supabase Auth and the `profiles` table: the table stores the profile as validated columns (`calorie_goal`, `protein_goal_g`, `dietary_restrictions`, `consumed` jsonb, …) and `profile.ts` converts with `toRow`/`toProfile`. Without one, they use `fakeAuth.ts`/`fakeProfile.ts` (localStorage, `nourish:*` keys; profiles saved before the `full_name` rename still load). Supabase passwords are bcrypt-hashed by Supabase Auth; row-level security limits each user to their own row; a trigger creates the profile from the sign-up's `user_metadata.username`. Screens must only use `auth.ts` and `profile.ts` for accounts. Don't read localStorage or call Supabase directly.
+**Accounts: Supabase, with local fakes as a fallback.** `lib/auth.ts` exports `auth` (an `AuthService`: `signUp`, `signInWithPassword`, `signOut`, `getSession`, `onAuthStateChange`, `{ data, error }` results, same API as `supabase.auth`). `lib/profile.ts` exports `getProfile`, `upsertProfile` and `isUsernameAvailable` (a `ProfileStore`) for `Profile = { id, username, onboarded, personalization }`. When `lib/supabase.ts` has a client, they use Supabase Auth and the `profiles` table: the table stores the profile as validated columns (`calorie_goal`, `protein_goal_g`, `dietary_restrictions`, `consumed` jsonb, …) and `profile.ts` converts with `toRow`/`toProfile`. Without one, they use `fakeAuth.ts`/`fakeProfile.ts` (localStorage, `macroterp:*` keys; `legacyStorage.ts` moves old `nourish:*` keys over once; profiles saved before the `full_name` rename still load). Supabase passwords are bcrypt-hashed by Supabase Auth; row-level security limits each user to their own row; a trigger creates the profile from the sign-up's `user_metadata.username`. Screens must only use `auth.ts` and `profile.ts` for accounts. Don't read localStorage or call Supabase directly.
 
 The onboarding prototype is desktop-only. The phone layout (single column under 900px, stacked goal cards under 760px) is ours.
 

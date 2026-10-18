@@ -1,5 +1,5 @@
 """
-Temporary terminal client for testing Meal Maker accounts on Supabase.
+Temporary terminal client for testing MacroTerp accounts on Supabase.
 
 Registers, logs in and out, and reads or updates a user's dietary restrictions,
 calorie goal, and protein goal, using the same Supabase project, tables, and
@@ -287,7 +287,7 @@ def set_preferences(client: Supabase, session: Session) -> None:
 def main() -> None:
     client = Supabase(*load_config())
     session: Session | None = None
-    print(f"Meal Maker account tester — {client.url}")
+    print(f"MacroTerp account tester — {client.url}")
 
     while True:
         if session:

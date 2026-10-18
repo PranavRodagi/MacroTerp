@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- MacroTerp mark: a plate of chicken and leafy greens on a sage disc -->
+  <circle cx="32" cy="32" r="32" fill="#a9bf9d"/>
+  <g transform="translate(32 32) scale(1.17) translate(-32 -32)">
+  <circle cx="32" cy="33.6" r="23" fill="#8ea781"/>
+  <circle cx="32" cy="32" r="23" fill="#ffffff"/>
+  <circle cx="32" cy="32" r="18" fill="none" stroke="#ebe6df" stroke-width="1.2"/>
+  <!-- leafy greens -->
+  <path d="M13.5 31.5C13 23.5 18.5 17.5 27 17.5C27.5 25.5 22 31.5 13.5 31.5Z" fill="#617957"/>
+  <path d="M14.5 30.5L25.5 19" stroke="#a9bf9d" stroke-width="1.1" stroke-linecap="round"/>
+  <path d="M16 39C14 32 18 26.5 25.5 25.5C27.5 32 23.5 38 16 39Z" fill="#80a06f"/>
+  <path d="M16.8 38L24.5 27" stroke="#cfe0c3" stroke-width="1" stroke-linecap="round"/>
+  <path d="M24 16.5C27 13 32.5 12.5 36 15C33 18.5 27.5 19 24 16.5Z" fill="#9dba8c"/>
+  <!-- chicken drumstick -->
+  <path d="M28.5 40.5C24.5 35 27.5 24.5 36.5 22.5C44.5 21 50 27.5 47.5 34C45.5 39 39.5 40 35.5 40.5C33.5 40.8 31.5 42 30.5 43Z" fill="#d6955a"/>
+  <path d="M31 38C29 33 31.5 27 37.5 25.5" stroke="#eab886" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+  <path d="M30.5 41.5L25 47" stroke="#f6eee2" stroke-width="3.6" stroke-linecap="round"/>
+  <circle cx="23" cy="47" r="2.3" fill="#f6eee2"/>
+  <circle cx="25" cy="49.2" r="2.3" fill="#f6eee2"/>
+  <path d="M30.5 41.5L25 47" stroke="#e3d6c3" stroke-width="0.9" stroke-linecap="round" opacity="0.8"/>
+  </g>
+</svg>

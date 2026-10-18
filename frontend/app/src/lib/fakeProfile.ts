@@ -1,9 +1,10 @@
 // FAKE profile storage, used when Supabase isn't configured (see lib/profile.ts).
 // One localStorage entry per user id.
+import "./legacyStorage";
 import { DEFAULT_PERSONALIZATION } from "./nutrition";
 import type { Profile, ProfileStore } from "./profile";
 
-const PREFIX = "nourish:fake-profile:";
+const PREFIX = "macroterp:fake-profile:";
 const key = (userId: string) => PREFIX + userId;
 const delay = () => new Promise((r) => setTimeout(r, 120));
 

@@ -5,14 +5,7 @@
 
 /* Shared logo (also used in the main screen header) */
 .logo { display: flex; align-items: center; gap: 12px; }
-.logo-mark {
-  width: 44px;
-  height: 44px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--sage);
-}
+.logo-mark { display: block; width: 44px; height: 44px; flex: none; }
 .logo-name { font-size: 24px; font-weight: 600; letter-spacing: -0.03em; color: var(--ink); }
 .logo--compact .logo-mark { width: 36px; height: 36px; }
 .logo--compact .logo-name { font-size: 20px; }
