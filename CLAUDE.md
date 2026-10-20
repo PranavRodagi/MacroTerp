@@ -13,7 +13,9 @@ Accounts use Supabase when `frontend/app/.env.local` has the project URL and pub
 
 **Deploy:** the frontend is on Vercel (project `macro-terp`, https://macro-terp.vercel.app, root `frontend/app`, Vite preset) and the API on Render (service `macroterp-api`, `render.yaml` Blueprint, free plan, health check `GET /api/health`). Both deploy from this repo's `main`, so pushing to `main` redeploys both. `frontend/app/vercel.json` forwards `/api/*` to `https://macroterp-api.onrender.com` and sends every other path to `index.html`; update that URL if the Render service changes. `server.py` reads `$PORT`. Supabase keys go in Vercel's environment variables (they're read at build time). Render's free plan sleeps after ~15 min idle, so the first request then takes 30–60s. The earlier deploy from the fork `mahirhalani/MacroTerp-deployment` (Render `nourishumd-api`, Vercel `technica26`) is no longer the main one.
 
-Backend data refresh: `pip install -r requirements.txt`, then `python scraper.py scrape` and `python scraper.py export --date YYYY-MM-DD` (writes `menu_<date>.json`; `server.py` reads `menu.json`, so copy or rename it).
+**Daily menu:** `.github/workflows/daily-menu.yml` runs at 09:00 UTC (and by hand from the Actions tab). It scrapes today's menu (New York date), keeps the old `menu.json` if the result has no items, and commits `menu.json` to `main`, which redeploys Render. `vercel.json`'s `ignoreCommand` skips the Vercel build when a commit only changes `menu.json`. The scraper's SQLite label cache is kept between runs with `actions/cache`.
+
+Manual data refresh: `pip install -r requirements.txt`, then `python scraper.py` (scrapes today and writes `menu.json`; `--date YYYY-MM-DD` for another day).
 
 ## Project structure
 
@@ -25,7 +27,8 @@ food_categories.toml       # menu item name → generic_name rules (drives plate
 menu.json / meals.json     # sample scraper output / sample recommender output
 server.py                  # JSON API wrapping meal_recommender for the frontend (POST /api/meals)
 account_cli.py             # TEMPORARY terminal client for Supabase accounts (register, log in, preferences)
-supabase/migrations/       # database schema: profiles table, row-level security, sign-up trigger (run in order)
+supabase/migrations/       # database schema: profiles table, row-level security, sign-up trigger, daily_meals (run in order)
+.github/workflows/daily-menu.yml  # scrapes the menu every morning and commits menu.json
 frontend/
   app/                     # React + Vite + TS app (from two Figma Make prototypes)
     src/App.tsx            # top-level flow: picks onboarding screen vs main screen from session + profile
@@ -34,7 +37,7 @@ frontend/
     src/components/        # Icon, Logo, PlateView, DailyProgress, MealNutritionChart, SidePanel,
                            # UserSettingsPanel, AdjustIntakePanel, NumberField
     src/lib/               # api.ts (meals fetch), auth.ts + profile.ts (Supabase, or fakeAuth.ts + fakeProfile.ts
-                           # without it), supabase.ts (client), authConfig.ts, demo.ts, router.ts,
+                           # without it), mealCache.ts (today's generated meals), supabase.ts (client), authConfig.ts, demo.ts, router.ts,
                            # nutrition.ts (nutrients, goals, restrictions, defaults), types.ts
     src/assets/logo-mark.svg  # MacroTerp logo (also the favicon)
     src/assets/onboarding/ # welcome-screen images from the onboarding Make file
@@ -85,8 +88,8 @@ The onboarding prototype is desktop-only. The phone layout (single column under 
 
 ## Data flow
 
-1. `MainScreen.tsx` calls `fetchMeals(period, personalization)` (personalization comes from the signed-in user's profile) → `POST /api/meals` with `{ period, restrictions, goals, consumed }` (goals and consumed cover all 7 nutrients).
-2. `server.py` builds `meal_recommender.UserSettings`. Calorie/protein go in directly. What's left of carbs, fiber, sodium and sugar is divided by the meals remaining today and passed as `carb_max_g`, `fiber_min_g`, `sodium_limit_mg` and `sugar_limit_g`. **Fat has no recommender setting, so it's display only.** Results are cached per request body, since one run takes 1.5–3.5s.
+1. `MainScreen.tsx` calls `fetchMeals(userId, period, personalization)` (personalization comes from the signed-in user's profile). It first checks `lib/mealCache.ts`: the `daily_meals` Supabase table (migration 003; localStorage without Supabase), one row per user, day (New York date) and period, reused only when the request body matches exactly. Otherwise it calls `POST /api/meals` with `{ period, restrictions, goals, consumed }` (goals and consumed cover all 7 nutrients).
+2. `server.py` builds `meal_recommender.UserSettings`. Calorie/protein go in directly. What's left of carbs, fiber, sodium and sugar is divided by the meals remaining today and passed as `carb_max_g`, `fiber_min_g`, `sodium_limit_mg` and `sugar_limit_g`. **Fat has no recommender setting, so it's display only.** Results are cached in memory per request body. A run takes ~0.25s locally (`menu_items()` parses each item's macros once into `_macros`; before that a run took 1.5–3.5s). Render's free plan is roughly 10× slower.
 3. The response is `generate_meals()` output: `{ source_menu_date, meals: [{ dining_hall, meal_option, meal_name, items[], meal_macros_total }] }`. Items have `name`, `generic_name`, `serving_g` and `macros`, with no `servings` (the plate defaults to 1).
 4. Every hall has **exactly two** meals (`meal_option` 1 and 2, `MEALS_PER_HALL` in the recommender, `OPTIONS` in `App.tsx`). The design's round arrows and two dots switch between them without looping. On option 1 the left arrow is disabled, and on option 2 the right one is (`.arrow-button:disabled` is greyed out). A meal with `items: []` means nothing fit: the arrow and dot that lead to it are disabled too.
 

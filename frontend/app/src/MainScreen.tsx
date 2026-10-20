@@ -35,10 +35,12 @@ function periodNow(): MealPeriod {
 
 // The meal screen for a signed-in, onboarded user. Settings come from their profile (see App.tsx).
 export function MainScreen({
+  userId,
   personalization,
   onSavePersonalization,
   onLogOut,
 }: {
+  userId: string;
   personalization: Personalization;
   onSavePersonalization: (p: Personalization) => Promise<string | null>; // resolves to an error message, or null
   onLogOut: () => void;
@@ -70,7 +72,7 @@ export function MainScreen({
     const ctrl = new AbortController();
     setLoading(true);
     setError(null);
-    fetchMeals(period, JSON.parse(fetchInput) as Personalization, ctrl.signal)
+    fetchMeals(userId, period, JSON.parse(fetchInput) as Personalization, ctrl.signal)
       .then((res) => {
         setData(res);
         setOption(0);
@@ -81,7 +83,7 @@ export function MainScreen({
       })
       .finally(() => !ctrl.signal.aborted && setLoading(false));
     return () => ctrl.abort();
-  }, [period, fetchInput]);
+  }, [userId, period, fetchInput]);
 
   // [option 1, option 2] for this hall; an entry with no items means nothing fit.
   const hallMeals = useMemo(

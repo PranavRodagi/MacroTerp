@@ -186,7 +186,14 @@ def number(value: Any) -> float | None:
 
 
 def macros_of(item: MenuItem) -> Macros:
-    """Return the item's nutrition values keyed by ``MACRO_KEYS``."""
+    """Return the item's nutrition values keyed by ``MACRO_KEYS``.
+
+    Items from menu_items() carry them already parsed in ``_macros``, since
+    scoring reads them millions of times per run.
+    """
+    parsed = item.get("_macros")
+    if parsed is not None:
+        return cast(Macros, parsed)
     raw = _as_dict(item.get("macros"))
     return {key: number(raw.get(key)) for key in MACRO_KEYS}
 
@@ -275,6 +282,7 @@ def menu_items(menu: dict[str, Any], hall: str, meal: str) -> list[MenuItem]:
                 item["_station"] = station
                 item["_hall"] = hall
                 item["_period"] = period
+                item["_macros"] = macros_of(item)
                 key = item.get("id", (item.get("name"), station, period))
                 # Don't duplicate brunch items when aliases ever overlap.
                 if key in seen_ids:
@@ -307,9 +315,10 @@ def meal_targets(settings: UserSettings) -> tuple[float, float]:
 
 def add_macros(items: list[MenuItem]) -> Macros:
     """Sum each macro across ``items``; a total is None if any item's value is unknown."""
+    per_item = [macros_of(item) for item in items]
     totals: Macros = {}
     for key in MACRO_KEYS:
-        values = [macros_of(item)[key] for item in items]
+        values = [m[key] for m in per_item]
         known = [v for v in values if v is not None]
         totals[key] = sum(known) if len(known) == len(values) else None
     return totals

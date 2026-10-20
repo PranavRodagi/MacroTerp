@@ -175,6 +175,6 @@ export default function App() {
         />
       );
     case "meals":
-      return <MainScreen onLogOut={logOut} onSavePersonalization={savePersonalization} personalization={profile!.personalization} />;
+      return <MainScreen userId={session!.user.id} onLogOut={logOut} onSavePersonalization={savePersonalization} personalization={profile!.personalization} />;
   }
 }

@@ -1,0 +1,61 @@
+# Scrapes today's UMD dining menus every morning and commits menu.json to main,
+# which redeploys the API on Render (Vercel skips the build; see frontend/app/vercel.json).
+# Run it by hand from the Actions tab ("Run workflow").
+name: Daily menu
+
+on:
+  schedule:
+    - cron: "0 9 * * *" # 09:00 UTC = 5 AM EDT / 4 AM EST; GitHub may start it a little late
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daily-menu
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      # The scraper's SQLite cache of nutrition labels, so each label is only fetched once.
+      - uses: actions/cache@v4
+        with:
+          path: umd_dining.db
+          key: umd-dining-db-${{ github.run_id }}
+          restore-keys: umd-dining-db-
+
+      - name: Scrape today's menu
+        run: python scraper.py --date "$(TZ=America/New_York date +%F)" --output menu_new.json
+
+      # Keep yesterday's menu.json if today's came back empty (site down, no menu posted yet).
+      - name: Check the menu has items
+        run: |
+          python - <<'EOF'
+          import json, sys
+          halls = json.load(open("menu_new.json"))["halls"]
+          items = sum(len(station) for meals in halls.values() for stations in meals.values() for station in stations.values())
+          print(f"{len(halls)} halls, {items} items")
+          sys.exit(0 if items else "No menu items scraped; keeping the old menu.json")
+          EOF
+          mv menu_new.json menu.json
+
+      - name: Commit menu.json
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add menu.json
+          if git diff --cached --quiet; then echo "Menu unchanged"; exit 0; fi
+          git commit -m "Update menu.json for $(TZ=America/New_York date +%F)"
+          git pull --rebase
+          git push
